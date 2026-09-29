@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0E0E10" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Painel de Pedidos | Pizzaria San Francisco</title>
+<link rel="icon" href="assets/img/favicon.png" type="image/png" />
+<link rel="apple-touch-icon" href="assets/img/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<script>
+/* carimbo que muda a cada 2 minutos: mesmo que o aparelho guarde a página,
+   a aparência e os programas vêm sempre atualizados */
+(function(){
+  var t = Math.floor(Date.now() / 120000);
+  document.write('<link rel="stylesheet" href="assets/css/comanda.css?t=' + t + '">');
+  document.write('<link rel="stylesheet" href="assets/css/painel.css?t=' + t + '">');
+})();
+</script>
+<noscript><link rel="stylesheet" href="assets/css/comanda.css" /><link rel="stylesheet" href="assets/css/painel.css" /></noscript>
+</head>
+<body>
+
+<!-- ============ tela de entrada ============ -->
+<section class="login" data-tela-login hidden>
+  <form class="caixa-login" data-form-login>
+    <img src="assets/img/logo.png" alt="" width="72" height="72" />
+    <h1>Painel de Pedidos</h1>
+    <p>Os pedidos do site chegam aqui na hora.</p>
+    <label>
+      <span>Senha da loja</span>
+      <input type="password" data-senha required autocomplete="current-password" placeholder="••••••••" />
+    </label>
+    <button type="submit" class="principal larga" data-entrar>Entrar</button>
+    <p class="erro" data-erro-login role="alert"></p>
+    <small>Digite uma vez só — este computador vai lembrar.</small>
+  </form>
+</section>
+
+<!-- ============ painel ============ -->
+<div data-tela-painel hidden>
+
+  <header class="topo">
+    <img src="assets/img/logo.png" alt="" width="38" height="38" />
+    <span class="marca">
+      <small>Pizzaria San Francisco</small>
+      <strong>Pedidos <b class="contador" data-contador></b></strong>
+    </span>
+    <span class="conexao" data-conexao data-ok="nao">Conectando…</span>
+    <button type="button" class="loja-estado" data-loja-estado aria-pressed="true">Loja aberta</button>
+    <button type="button" class="sair" data-atualizar title="Buscar a versão mais nova do sistema">Atualizar</button>
+    <button type="button" class="sair" data-trocar-senha title="Trocar a senha da loja">Senha</button>
+    <button type="button" class="sair" data-acesso-privado title="Caixa, Histórico e Cardápio ficam atrás de uma segunda senha">Acesso privado</button>
+    <button type="button" class="sair" data-trocar-senha-privada hidden title="Trocar a senha do acesso privado">Senha privada</button>
+    <button type="button" class="sair" data-sair>Sair</button>
+  </header>
+
+  <div class="barra">
+    <div class="filtros">
+      <button type="button" data-filtro="abertos" aria-pressed="true">Em aberto</button>
+      <button type="button" data-filtro="balcao" aria-pressed="false">Balcão</button>
+      <button type="button" data-filtro="todos" aria-pressed="false">Todos de hoje</button>
+      <button type="button" data-filtro="historico" aria-pressed="false" data-so-privado hidden>Histórico</button>
+      <button type="button" data-filtro="caixa" aria-pressed="false" data-so-privado hidden>Caixa</button>
+      <button type="button" data-filtro="cardapio" aria-pressed="false" data-so-privado hidden>Cardápio</button>
+      <label class="caixa-data" data-caixa-data hidden>
+        <span>Dia</span>
+        <input type="date" data-data />
+      </label>
+    </div>
+    <div class="ajustes">
+      <button type="button" class="alternar" data-som aria-pressed="true">Som ligado</button>
+      <button type="button" class="alternar" data-testar-som>Testar som</button>
+    </div>
+  </div>
+
+  <button type="button" class="faixa-alerta" data-aviso-som hidden>
+    O alerta sonoro está bloqueado pelo navegador. <b>Toque aqui para ligar o som.</b>
+  </button>
+
+  <div class="faixa-erro" data-aviso-erro hidden>
+    <span>Alguma coisa travou nesta tela. Os pedidos continuam chegando no servidor.</span>
+    <button type="button" data-recarregar>Recarregar o painel</button>
+  </div>
+
+  <div class="resumo" data-resumo hidden></div>
+
+  <section class="caixa" data-caixa hidden></section>
+
+  <section class="cardapio-editor" data-editor hidden>
+    <div class="ed-topo">
+      <div>
+        <h2>Cardápio</h2>
+        <p class="ed-ajuda">Mude o preço, marque o que acabou e ajuste nome, descrição e foto.
+           O site muda em até 2 minutos.</p>
+      </div>
+      <div class="ed-acoes">
+        <span class="ed-status" data-ed-status></span>
+        <button type="button" class="principal" data-ed-salvar>Salvar alterações</button>
+      </div>
+    </div>
+    <div class="ed-busca"><input type="search" data-ed-busca placeholder="Procurar item…" /></div>
+    <div class="ed-grupos" data-ed-grupos></div>
+    <div class="ed-lista" data-ed-lista></div>
+  </section>
+
+  <section class="balcao" data-balcao hidden>
+
+    <!-- abas: várias comandas abertas ao mesmo tempo -->
+    <div class="cmd-abas" data-abas></div>
+
+    <div class="cmd-area">
+
+      <!-- lado esquerdo: o cardápio para clicar -->
+      <div class="cmd-cardapio">
+        <div class="cmd-busca">
+          <input type="search" data-busca placeholder="Procurar lanche, bebida, porção…" autocomplete="off" />
+        </div>
+        <button type="button" class="cmd-mm" data-mm-toggle aria-pressed="false">Meio a meio: desligado</button>
+        <p class="cmd-mm-ajuda" data-mm-ajuda hidden>Toque em 2 sabores do mesmo tamanho pra combinar. Toque de novo no primeiro pra cancelar.</p>
+        <div class="cmd-grupos" data-grupos></div>
+        <div class="cmd-itens" data-itens></div>
+        <button type="button" class="cmd-avulso" data-avulso>+ Item que não está na lista</button>
+      </div>
+
+      <!-- lado direito: a comanda sendo montada -->
+      <div class="cmd-pedido">
+
+        <div class="cmd-linhas" data-linhas></div>
+
+        <div class="cmd-campos">
+          <label class="campo"><span>Nome do cliente</span>
+            <input type="text" data-cliente placeholder="Ex.: João" /></label>
+
+          <label class="campo"><span>WhatsApp (opcional)</span>
+            <input type="tel" inputmode="numeric" data-fone placeholder="11 90000-0000" /></label>
+
+          <div class="campo">
+            <span>Como vai receber</span>
+            <div class="cmd-tipos" data-tipos>
+              <button type="button" data-tipo="Retirada no balcão" class="ativo">Balcão</button>
+              <button type="button" data-tipo="No restaurante">No restaurante</button>
+              <button type="button" data-tipo="Entrega">Entrega</button>
+            </div>
+          </div>
+
+          <label class="campo" data-campo-endereco hidden><span>Endereço da entrega</span>
+            <input type="text" data-endereco placeholder="Rua, número, bairro" /></label>
+
+          <p class="campo cmd-taxa-aviso" data-campo-taxa hidden>
+            <span>Taxa de entrega</span>
+            <b>Combinar com o cliente</b>
+            <i>A tabela por bairro entra no site assim que a lista de bairros for passada. Até lá a comanda sai com “a combinar”.</i>
+          </p>
+
+          <div class="campo">
+            <span>Forma de pagamento</span>
+            <div class="cmd-pagto" data-pagto>
+              <button type="button" data-forma="Dinheiro">Dinheiro</button>
+              <button type="button" data-forma="Pix">Pix</button>
+              <button type="button" data-forma="Cartão de débito">Débito</button>
+              <button type="button" data-forma="Cartão de crédito">Crédito</button>
+            </div>
+          </div>
+
+          <label class="campo" data-campo-troco hidden><span>Cliente vai pagar com quanto?</span>
+            <input type="text" inputmode="decimal" data-recebido placeholder="Ex.: 50,00" /></label>
+
+          <label class="campo"><span>Observação do pedido</span>
+            <input type="text" data-obs placeholder="Ex.: sem cebola, tocar o interfone" /></label>
+        </div>
+
+        <div class="cmd-totais" data-totais></div>
+
+        <div class="cmd-botoes">
+          <button type="button" class="cmd-fechar" data-fechar-comanda>Salvar</button>
+          <button type="button" class="principal larga" data-imprimir>Imprimir</button>
+        </div>
+        <p class="aviso" data-aviso hidden></p>
+
+        <details class="cmd-colar">
+          <summary>Colar pedido escrito do WhatsApp</summary>
+          <textarea data-entrada placeholder="Cole aqui o texto do pedido que chegou pelo WhatsApp"></textarea>
+          <div class="botoes">
+            <button type="button" data-colar>Colar da área de transferência</button>
+            <button type="button" data-ler>Transformar em comanda</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- a folha que vai para a impressora + histórico -->
+      <div class="cmd-folha">
+        <h2>Como vai sair no papel</h2>
+        <div class="area-papel"><div class="papel" data-papel></div></div>
+
+        <h2 class="cmd-hist-titulo">Comandas fechadas hoje</h2>
+        <p class="ajuda">Já entraram no caixa. Dá para abrir de novo e corrigir o que precisar.</p>
+        <div class="cmd-historico" data-hist-comandas></div>
+      </div>
+
+    </div>
+
+    <details class="guia">
+      <summary>Como deixar a impressora pronta</summary>
+      <ol>
+        <li><strong>No computador</strong>: ligue a impressora Epson TM-T20X pelo cabo USB e instale o driver que veio com ela. Depois é só usar o botão “Imprimir”, escolher a TM-T20X e mandar.</li>
+        <li><strong>Cartaz com QR Code</strong> para colar no balcão: <a href="qrcode.html" target="_blank" rel="noopener">abrir para imprimir</a>.</li>
+      </ol>
+    </details>
+
+  </section>
+
+
+
+  <main class="lista" data-lista>
+    <p class="vazio">Carregando os pedidos de hoje…</p>
+  </main>
+
+  <footer class="rodape-painel">
+    <p>Esta tela precisa ficar <strong>aberta</strong> para apitar quando chegar pedido. Deixe fixada numa aba do navegador.</p>
+    <a href="qrcode.html" target="_blank" rel="noopener">Cartaz com QR Code para imprimir →</a>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var t = Math.floor(Date.now() / 120000);
+  ["comanda-core", "caixa", "cardapio", "balcao", "editor"].forEach(function(a){
+    document.write('<script src="assets/js/' + a + '.js?t=' + t + '"><\/script>');
+  });
+  document.write('<script type="module" src="assets/js/painel.js?t=' + t + '"><\/script>');
+})();
+</script>
+</body>
+</html>

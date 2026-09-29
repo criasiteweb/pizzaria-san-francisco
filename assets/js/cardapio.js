@@ -4,7 +4,7 @@
 
    Cardápio tirado do folheto da pizzaria (Rua Eugênio Roncon, 175
    — Roncon — Ribeirão Pires), em 29/09/2026.
-   Modelo de demonstração feito a partir do site da Pizzaria Vitória.
+   Modelo feito a partir do site da Pizzaria Vitória (sem alterar o dela).
    ========================================================= */
 
 /* ---------- tamanho ----------

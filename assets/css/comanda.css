@@ -1,0 +1,407 @@
+/* =========================================================
+   Pizzaria Nonna Rosa — MODO LOJA (tela + impressão 80mm)
+   Criasiteweb
+   ========================================================= */
+:root{
+  --preto:#0E0E10; --carvao:#16171B; --giz:#1E2025; --giz-claro:#26282E;
+  --linha:rgba(255,255,255,.09);
+  --amarelo:#D42A20; --amarelo-forte:#E8493C; --vermelho:#D8261C; --verde:#2FA96B;
+  --texto:#EDEAE2; --texto-suave:rgba(237,234,226,.62);
+  --raio:14px; --raio-g:22px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--preto);color:var(--texto);
+  font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+img{max-width:100%;display:block}
+h1,h2{font-family:"Anton",Impact,sans-serif;font-weight:400;text-transform:uppercase;margin:0;line-height:1.1}
+:focus-visible{outline:2px solid var(--amarelo);outline-offset:3px;border-radius:8px}
+
+.envolve{max-width:640px;margin:0 auto;padding:0 16px 96px}
+
+/* ---- topo ---- */
+.topo{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;
+  padding:12px 16px;background:rgba(14,14,16,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--linha);
+}
+.topo img{width:38px;height:38px;border-radius:10px}
+.topo strong{display:block;font-size:.95rem;line-height:1.15}
+.topo small{display:block;font-size:.72rem;color:var(--amarelo);letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+.topo a.sair{margin-left:auto;font-size:.8rem;color:var(--texto-suave);text-decoration:none;border:1px solid var(--linha);padding:8px 12px;border-radius:999px}
+
+/* ---- blocos ---- */
+.bloco{background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);padding:18px;margin-top:18px}
+.bloco > h2{font-size:1.15rem;margin-bottom:4px}
+.bloco > p.ajuda{font-size:.85rem;color:var(--texto-suave);margin:0 0 14px}
+
+textarea{
+  width:100%;min-height:150px;resize:vertical;border-radius:var(--raio);
+  background:var(--giz);border:1px solid var(--linha);color:var(--texto);
+  padding:14px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9rem;line-height:1.5;
+}
+textarea::placeholder{color:rgba(237,234,226,.35)}
+
+.botoes{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+button{
+  font:inherit;font-weight:700;cursor:pointer;border:1px solid var(--linha);
+  background:var(--giz-claro);color:var(--texto);
+  padding:14px 18px;border-radius:999px;min-height:52px;flex:1 1 auto;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+button:active{transform:translateY(1px)}
+button.principal{background:var(--amarelo);color:#fff;border-color:transparent}
+button.forte{background:var(--vermelho);color:#fff;border-color:transparent}
+button.larga{flex-basis:100%}
+
+.campos{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
+.campo{display:flex;flex-direction:column;gap:6px;flex:1 1 180px}
+.campo span{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--texto-suave);font-weight:800}
+.campo input{
+  background:var(--giz);border:1px solid var(--linha);color:var(--texto);
+  border-radius:12px;padding:12px 14px;font:inherit;min-height:48px;
+}
+.marca{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--texto-suave);flex:1 1 200px}
+.marca input{width:22px;height:22px;accent-color:var(--amarelo)}
+
+.aviso{margin-top:12px;font-size:.88rem;padding:12px 14px;border-radius:12px;
+  background:rgba(47,169,107,.12);border:1px solid rgba(47,169,107,.4);color:#9BE3BF}
+.aviso[data-erro="true"]{background:rgba(216,38,28,.12);border-color:rgba(216,38,28,.45);color:#FFB3AD}
+
+/* ---- prévia do papel ---- */
+.area-papel{margin-top:16px;display:flex;justify-content:center}
+.papel{
+  width:100%;max-width:340px;background:#fff;color:#111;border-radius:6px;
+  padding:16px 14px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  font-size:12px;line-height:1.45;box-shadow:0 18px 44px rgba(0,0,0,.5);
+}
+.papel .cab{text-align:center;margin-bottom:10px}
+.papel .cab strong{display:block;font-size:15px;letter-spacing:.04em}
+.papel .cab span{display:block;font-size:10.5px;color:#333}
+.papel hr{border:0;border-top:1px dashed #999;margin:9px 0}
+.papel .lin{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.papel .lin.num{font-size:11px;color:#333}
+.papel .lin.forte{font-weight:700}
+.papel .lin.total{font-size:15px;font-weight:800;margin-top:3px}
+.papel .item{margin:7px 0}
+.papel .sub{font-size:11px;color:#333;padding-left:12px}
+.papel .sub.obs{font-weight:700;color:#000}
+.papel .dado{display:flex;gap:8px;font-size:11.5px;margin:2px 0}
+.papel .dado i{font-style:normal;font-weight:700;min-width:82px;text-transform:uppercase;font-size:10px;letter-spacing:.04em;padding-top:1px}
+.papel .rodape{text-align:center;font-size:10.5px;color:#444;margin-top:10px}
+.papel .cru{white-space:pre-wrap;font-size:11.5px}
+
+/* ---- histórico ---- */
+ul.lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+ul.lista button{
+  width:100%;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:14px;
+  background:var(--giz);font-weight:500;text-align:left;min-height:56px;
+}
+ul.lista b{color:var(--amarelo);font-family:ui-monospace,monospace}
+ul.lista span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.lista i{font-style:normal;color:var(--texto-suave);font-size:.8rem}
+
+details.guia{margin-top:18px;background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);padding:0 18px}
+details.guia summary{cursor:pointer;padding:18px 0;font-weight:700;list-style:none}
+details.guia summary::-webkit-details-marker{display:none}
+details.guia summary::after{content:" ▾";color:var(--amarelo)}
+details.guia[open] summary::after{content:" ▴"}
+details.guia ol{margin:0 0 18px;padding-left:20px;color:var(--texto-suave);font-size:.9rem}
+details.guia li{margin-bottom:8px}
+details.guia strong{color:var(--texto)}
+
+/* =========================================================
+   IMPRESSÃO — bobina de 80mm
+   ========================================================= */
+
+/* ---- blocos da comanda (Cliente / Pedido / Valores / Pagamento) ---- */
+.papel .tarja{
+  margin:10px 0;padding:7px 0;text-align:center;
+  font-family:"Anton",Impact,sans-serif;font-size:17px;letter-spacing:.14em;
+  border:2px solid #111;border-radius:6px;color:#111;
+}
+.papel .tarja.t-entrega{background:#111;color:#fff}
+.papel .secao{
+  margin:12px 0 6px;padding-bottom:3px;border-bottom:2px solid #111;
+  font:800 11px/1 "Inter",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#111;
+}
+.papel .dado.troco span{font-weight:800;font-size:15px}
+
+@media print{
+  @page{ size: 80mm auto; margin: 0; }
+
+  /* Esconder com "visibility" não bastava: o resto da tela continuava
+     ocupando altura e saíam páginas em branco depois da comanda.
+     Aqui tudo é removido do papel de verdade, e só o caminho até a folha
+     é reexibido — assim sai UMA página, do tamanho exato do conteúdo. */
+  html, body{
+    background:#fff !important; color:#000 !important;
+    margin:0 !important; padding:0 !important; height:auto !important;
+  }
+  body > *{ display:none !important; }
+  body > [data-tela-painel]{ display:block !important; }
+  [data-tela-painel] > *{ display:none !important; }
+
+  [data-balcao]{
+    display:block !important; padding:0 !important; margin:0 !important;
+    max-width:none !important; background:#fff !important; border:0 !important;
+  }
+  [data-balcao] > *{ display:none !important; }
+
+  .cmd-area{ display:block !important; gap:0 !important; }
+  .cmd-area > *{ display:none !important; }
+
+  .cmd-folha{
+    display:block !important; padding:0 !important; margin:0 !important;
+    background:#fff !important; border:0 !important; border-radius:0 !important;
+  }
+  .cmd-folha > *{ display:none !important; }
+  .cmd-folha .area-papel{
+    display:block !important; padding:0 !important; margin:0 !important;
+    background:#fff !important; border:0 !important; max-height:none !important; overflow:visible !important;
+  }
+
+  .papel *{ visibility:visible !important; }
+  .papel{
+    display:block !important;
+    position:static !important;
+    width:72mm; max-width:72mm; margin:0; padding:2mm 2mm 6mm;
+    box-shadow:none; border:0; border-radius:0; background:#fff; color:#000;
+    font-size:9.5pt; line-height:1.35;
+    page-break-inside:avoid; break-inside:avoid;
+  }
+  .papel .cab strong{font-size:13pt}
+  .papel .cab span{font-size:8pt;color:#000}
+  .papel .lin.total{font-size:13pt}
+  .papel .sub,.papel .dado,.papel .lin.num{color:#000}
+  .papel hr{border-top:1px dashed #000}
+  .papel .tarja{font-size:15pt;border-color:#000;color:#000;padding:2mm 0;margin:3mm 0}
+  .papel .tarja.t-entrega{background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .papel .secao{font-size:8pt;border-bottom:1.5pt solid #000;color:#000;margin:4mm 0 2mm}
+  .papel .dado.troco span{font-size:12pt}
+}
+
+
+/* nome comprido quebra, mas o preço fica na mesma linha do início do item */
+.papel .lin > span{min-width:0;overflow-wrap:anywhere}
+.papel .lin > b{white-space:nowrap;flex:0 0 auto}
+.papel .tarja.t-mesa{background:#111;color:#fff}
+
+/* =========================================================
+   Aba Comanda do painel — montar pedido clicando no cardápio
+   ========================================================= */
+.balcao{ padding: 14px clamp(12px, 3vw, 22px) 40px; max-width: 1500px; margin: 0 auto; }
+
+/* ---- abas de comandas abertas ---- */
+.cmd-abas{
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px;
+  scrollbar-width: thin;
+}
+.cmd-aba{
+  flex: none; display: grid; gap: 2px; text-align: left;
+  padding: 7px 12px; border-radius: 10px; cursor: pointer;
+  background: #17171B; color: #EDEAE2;
+  border: 1px solid rgba(237,234,226,.14);
+}
+.cmd-aba b{ font-size: .8rem; font-weight: 700; }
+.cmd-aba i{ font-size: .7rem; opacity: .65; font-style: normal; }
+.cmd-aba.ativa{ background: var(--amarelo); color: #fff; border-color: var(--amarelo); }
+.cmd-aba.ativa i{ opacity: .8; }
+.cmd-aba.nova{ background: transparent; border-style: dashed; align-self: stretch; }
+
+/* ---- as três colunas ---- */
+.cmd-area{
+  display: grid; gap: 14px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 980px){
+  .cmd-area{ grid-template-columns: 1.05fr 1.25fr 1fr; align-items: start; }
+}
+
+.cmd-cardapio, .cmd-pedido, .cmd-folha{
+  background: #131316; border: 1px solid rgba(237,234,226,.1);
+  border-radius: 16px; padding: 14px;
+}
+
+/* ---- cardápio para clicar ---- */
+.cmd-busca input{
+  width: 100%; padding: 9px 11px; border-radius: 9px;
+  background: #0E0E10; color: #EDEAE2; font-size: .88rem;
+  border: 1px solid rgba(237,234,226,.18);
+}
+.cmd-grupos{ display: flex; flex-wrap: wrap; gap: 6px; margin: 11px 0; }
+.cmd-grupos button{
+  padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: .74rem;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.14);
+}
+.cmd-grupos button.ativo{ background: var(--amarelo); color: #fff; border-color: var(--amarelo); font-weight: 700; }
+
+.cmd-itens{ display: grid; gap: 6px; max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+.cmd-item{
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  width: 100%; padding: 7px 10px; border-radius: 8px; cursor: pointer; text-align: left;
+  background: #1A1A1F; color: #EDEAE2; border: 1px solid transparent;
+  font-size: .78rem; line-height: 1.3;
+}
+.cmd-item > span{ min-width: 0; overflow-wrap: anywhere; }
+.cmd-item:hover{ border-color: var(--amarelo); }
+.cmd-item:active{ transform: scale(.99); }
+.cmd-item b{ color: var(--amarelo); white-space: nowrap; }
+.cmd-item.escolhido{ border-color: var(--amarelo); background: rgba(212,42,32,.14); }
+
+.cmd-mm{
+  display: block; width: 100%; margin: 8px 0 0; padding: 8px 10px; border-radius: 9px;
+  cursor: pointer; font-size: .78rem; font-weight: 700; text-align: center;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.14);
+}
+.cmd-mm[aria-pressed="true"]{ background: var(--amarelo); color: #fff; border-color: var(--amarelo); }
+.cmd-mm-ajuda{ margin: 6px 0 0; font-size: .72rem; color: var(--texto-suave); text-align: center; }
+.cmd-avulso{
+  width: 100%; margin-top: 10px; padding: 10px; border-radius: 10px; cursor: pointer;
+  background: transparent; color: #EDEAE2; border: 1px dashed rgba(237,234,226,.3); font-size: .85rem;
+}
+.cmd-vazio{ opacity: .6; font-size: .86rem; padding: 10px 2px; margin: 0; }
+
+/* ---- itens escolhidos ---- */
+.cmd-linhas{ display: grid; gap: 6px; margin-bottom: 14px; }
+.cmd-linha{
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 7px;
+  padding: 6px 9px; border-radius: 9px; background: #1A1A1F;
+}
+.cmd-qtd{ display: flex; align-items: center; gap: 6px; flex: none; }
+.cmd-qtd button{
+  width: 22px; height: 22px; border-radius: 6px; cursor: pointer; font-size: .82rem; line-height: 1; padding: 0;
+  background: #26262C; color: #EDEAE2; border: 1px solid rgba(237,234,226,.16);
+}
+.cmd-qtd b{ min-width: 14px; text-align: center; font-size: .82rem; }
+.cmd-nome{ display: grid; flex: 1 1 auto; min-width: 0; }
+.cmd-nome span{ font-size: .82rem; line-height: 1.3; overflow-wrap: anywhere; }
+.cmd-nome i{ font-size: .72rem; opacity: .7; font-style: normal; overflow-wrap: anywhere; }
+.cmd-valor{ color: var(--amarelo); font-size: .84rem; white-space: nowrap; }
+
+/* os dois botõezinhos ficam na terceira coluna, um do lado do outro */
+.cmd-obs, .cmd-tira{
+  width: 21px; height: 21px; border-radius: 6px; cursor: pointer; line-height: 1; font-size: .7rem; padding: 0;
+  background: transparent; color: #EDEAE2; border: 1px solid rgba(237,234,226,.16);
+}
+.cmd-linha .cmd-valor{ flex: none; margin-left: auto; }
+.cmd-linha .cmd-obs, .cmd-linha .cmd-tira{ flex: none; }
+.cmd-tira{ color: #FF8A7A; }
+
+/* ---- campos ---- */
+.cmd-campos{ display: grid; gap: 11px; }
+.cmd-campos .campo{ display: grid; gap: 5px; }
+.cmd-campos .campo > span{ font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; opacity: .65; }
+.cmd-campos input{
+  width: 100%; padding: 8px 10px; border-radius: 8px; font-size: .85rem;
+  background: #0E0E10; color: #EDEAE2; border: 1px solid rgba(237,234,226,.18);
+}
+.cmd-tipos, .cmd-pagto{ display: flex; flex-wrap: wrap; gap: 6px; }
+.cmd-tipos button, .cmd-pagto button{
+  flex: 1 1 auto; padding: 7px 9px; border-radius: 8px; cursor: pointer; font-size: .76rem;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.14);
+}
+.cmd-tipos button.ativo, .cmd-pagto button.ativo{
+  background: var(--amarelo); color: #fff; border-color: var(--amarelo); font-weight: 700;
+}
+
+/* ---- totais ---- */
+.cmd-totais{ margin: 14px 0; display: grid; gap: 5px; }
+.cmd-total-linha{ display: flex; justify-content: space-between; font-size: .9rem; }
+.cmd-total-linha.geral{ font-size: 1.05rem; font-weight: 700; padding-top: 6px; border-top: 1px solid rgba(237,234,226,.14); }
+.cmd-total-linha.geral b{ color: var(--amarelo); }
+.cmd-total-linha.troco b{ color: #7BE08F; }
+.cmd-total-linha.falta b{ color: #FF8A7A; }
+
+.cmd-botoes{ display: grid; gap: 8px; }
+.cmd-botoes button{
+  padding: 9px; border-radius: 9px; cursor: pointer; font-size: .82rem; font-weight: 600;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.16);
+}
+.cmd-botoes .principal{ background: var(--amarelo); color: #fff; border-color: var(--amarelo); }
+.cmd-botoes .cmd-fechar{ border-color: rgba(255,138,122,.4); color: #FF8A7A; }
+
+.cmd-colar{ margin-top: 14px; }
+.cmd-colar summary{ cursor: pointer; font-size: .85rem; opacity: .75; }
+.cmd-colar textarea{
+  width: 100%; min-height: 110px; margin-top: 9px; padding: 11px; border-radius: 11px;
+  background: #0E0E10; color: #EDEAE2; border: 1px solid rgba(237,234,226,.18);
+  font-family: inherit; font-size: .9rem; resize: vertical;
+}
+.cmd-colar .botoes{ display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.cmd-colar .botoes button{
+  flex: 1 1 auto; padding: 10px; border-radius: 10px; cursor: pointer;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.16);
+}
+
+.balcao h2{
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 700; letter-spacing: 0; text-transform: none;
+}
+.cmd-folha h2{ font-size: .85rem; margin: 0 0 8px; }
+.cmd-folha .marca{ display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .82rem; opacity: .8; }
+
+/* taxa por bairro: não se digita aqui, vem da tabela do site */
+.cmd-taxa-aviso{ display: grid; gap: 3px; margin: 0; }
+.cmd-taxa-aviso b{ font-size: .95rem; color: var(--amarelo); }
+.cmd-taxa-aviso i{ font-size: .74rem; opacity: .6; font-style: normal; line-height: 1.35; }
+
+/* ---- histórico de comandas fechadas ---- */
+.cmd-hist-titulo{ margin: 16px 0 4px; font-size: .85rem; }
+.cmd-folha .ajuda{ font-size: .78rem; opacity: .6; margin: 0 0 10px; }
+.cmd-historico{ display: grid; gap: 8px; max-height: 40vh; overflow-y: auto; padding-right: 4px; }
+.cmd-hist{
+  background: #1A1A1F; border: 1px solid rgba(237,234,226,.1);
+  border-radius: 11px; padding: 10px 11px; display: grid; gap: 6px;
+}
+.cmd-hist-topo{ display: flex; align-items: baseline; gap: 8px; font-size: .86rem; }
+.cmd-hist-topo b{ color: var(--amarelo); }
+.cmd-hist-topo span{ flex: 1; overflow-wrap: anywhere; }
+.cmd-hist-topo i{ font-style: normal; opacity: .55; font-size: .75rem; }
+.cmd-hist-baixo{ display: flex; justify-content: space-between; align-items: center; font-size: .85rem; }
+.cmd-hist-forma{ opacity: .75; }
+.cmd-hist-baixo b{ color: #EDEAE2; }
+.cmd-hist-acoes{ display: flex; gap: 6px; }
+.cmd-hist-acoes button{
+  flex: 1; padding: 7px; border-radius: 8px; cursor: pointer; font-size: .76rem;
+  background: #26262C; color: #EDEAE2; border: 1px solid rgba(237,234,226,.14);
+}
+.cmd-hist-acoes .cmd-tira-hist{ flex: 0 0 auto; color: #FF8A7A; }
+
+/* ---- botões de mês no relatório ---- */
+.cx-meses{ display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+
+/* ---- seletor de mês em forma de calendário ---- */
+.cx-meses{ display: grid; gap: 8px; justify-items: start; margin: 10px 0 14px; }
+.cx-mes-abre{
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 9px; cursor: pointer; font-size: .82rem; font-weight: 600;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.16);
+}
+.cx-mes-abre i{ font-style: normal; opacity: .6; }
+.cx-mes-abre.aberto{ border-color: var(--amarelo); color: var(--amarelo); }
+
+.cx-calendario{
+  width: min(300px, 100%);
+  background: #131316; border: 1px solid rgba(237,234,226,.14);
+  border-radius: 14px; padding: 12px;
+}
+.cx-cal-ano{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cx-cal-ano b{ font-size: 1rem; }
+.cx-cal-ano button{
+  flex: 0 0 auto; width: 32px; height: 32px; padding: 0; border-radius: 8px; cursor: pointer; font-size: 1.1rem; line-height: 1;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.16);
+}
+.cx-cal-ano button:disabled{ opacity: .25; cursor: default; }
+
+.cx-cal-grade{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cx-cal-grade button{
+  padding: 9px 4px; border-radius: 9px; cursor: pointer; font-size: .8rem;
+  background: #1C1C21; color: #EDEAE2; border: 1px solid rgba(237,234,226,.12);
+}
+.cx-cal-grade button:disabled{ opacity: .22; cursor: default; }
+.cx-cal-grade button.ativo{ background: var(--amarelo); color: #fff; border-color: var(--amarelo); font-weight: 700; }

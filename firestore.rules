@@ -1,0 +1,121 @@
+rules_version = '2';
+
+/* =========================================================
+   Pizzaria San Francisco — regras do servidor de pedidos
+   Criasiteweb
+
+   Ideia central:
+   - QUALQUER pessoa pode ENVIAR um pedido (é o cliente no site).
+   - NINGUÉM pode LER a lista de pedidos, exceto a conta da loja.
+     Isso protege nome, telefone e endereço dos clientes.
+   - Nada pode ser apagado: histórico do dia fica preservado.
+   ========================================================= */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function ehALoja() {
+      return request.auth != null
+          && request.auth.token.email == 'criasite.site@gmail.com'
+          && request.auth.token.email_verified in [true, false];
+    }
+
+    /* o pedido que chega do site precisa ter cara de pedido:
+       campos certos, tamanhos sadios e status sempre "novo" */
+    function pedidoValido(d) {
+      return d.keys().hasOnly(['criadoEm','status','impresso','texto','cliente',
+                               'fone','tipo','endereco','pagamento','total','itens','taxa'])
+          && d.status == 'novo'
+          && d.impresso == false
+          && d.texto is string   && d.texto.size() > 0 && d.texto.size() <= 4000
+          && d.cliente is string && d.cliente.size() <= 80
+          && d.fone is string    && d.fone.size() <= 25
+          && d.tipo is string    && d.tipo.size() <= 20
+          && d.endereco is string  && d.endereco.size() <= 200
+          && d.pagamento is string && d.pagamento.size() <= 80
+          && d.total is number   && d.total >= 0 && d.total <= 100000
+          && d.itens is int      && d.itens >= 0 && d.itens <= 200
+          && d.taxa is number    && d.taxa >= 0 && d.taxa <= 1000
+          && d.criadoEm == request.time;
+    }
+
+    match /pedidos/{pedido} {
+      allow create: if pedidoValido(request.resource.data);
+      allow get, list: if ehALoja();
+      /* a loja só mexe no andamento do pedido, nunca no conteúdo */
+      allow update: if ehALoja()
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['status','impresso']);
+      /* a loja pode apagar — usado pela Criasiteweb para limpar os pedidos
+         de teste antes de entregar o sistema. Não há botão para isso no
+         painel: é feito por fora, de propósito. */
+      allow delete: if ehALoja();
+    }
+
+    /* Caixa do dia: despesas com mercadoria e fechamento.
+       Só a loja mexe — o cliente do site nem enxerga. */
+    match /caixa/{dia} {
+      allow read, write: if ehALoja();
+    }
+
+    /* Estado da loja (aberta/fechada agora).
+       O site do cliente precisa LER isto para mostrar o selo certo,
+       então a leitura é livre. Só a loja escreve. */
+    match /publico/loja {
+      allow read: if true;
+      allow write: if ehALoja();
+    }
+
+    /* Ajustes do cardápio feitos pelo dono no painel (preço, esgotado,
+       nome e descrição). O site do cliente precisa LER para mostrar os
+       valores certos, então a leitura é livre. Só a loja escreve. */
+    match /publico/cardapio {
+      allow read: if true;
+      allow write: if ehALoja();
+    }
+
+    /* Pedido feito pela mesa (restaurante.html). Cada documento é uma
+       rodada de pedido daquela mesa, que o painel importa pra dentro da
+       comanda e marca como "importado". Sem dado pessoal obrigatório. */
+    function pedidoMesaValido(d) {
+      return d.keys().hasOnly(['mesa','cliente','itens','total','status','criadoEm'])
+          && d.mesa is int && d.mesa >= 1 && d.mesa <= 13
+          && d.status == 'novo'
+          && d.cliente is string && d.cliente.size() <= 80
+          && d.itens is list && d.itens.size() >= 1 && d.itens.size() <= 100
+          && d.total is number && d.total >= 0 && d.total <= 100000
+          && d.criadoEm == request.time;
+    }
+
+    match /pedidos_mesa/{pedido} {
+      allow create: if pedidoMesaValido(request.resource.data);
+      allow get, list: if ehALoja();
+      allow update: if ehALoja()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if ehALoja();
+    }
+
+    /* Login opcional do cliente com a conta Google, no site e no
+       /restaurante. Cada cliente só lê/escreve o próprio cadastro (nome,
+       telefone, endereço) e o próprio histórico de pedidos — nunca vê o
+       de outro cliente, e a loja não precisa dessa coleção pra nada. */
+    match /clientes/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /pedidos/{pedidoId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    /* Segunda senha do "Acesso privado" (Caixa, Histórico e Cardápio).
+       Só quem já está logado como a loja no painel consegue ler ou trocar,
+       nunca o site do cliente. */
+    match /config/painel {
+      allow read, write: if ehALoja();
+    }
+
+    /* qualquer outro caminho fica fechado */
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+  }
+}

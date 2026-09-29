@@ -1,0 +1,428 @@
+/* =========================================================
+   Pizzaria Nonna Rosa — PAINEL DE PEDIDOS (painel.html)
+   Criasiteweb
+   Usa as cores e o topo definidos em comanda.css.
+   ========================================================= */
+
+/* ---------- entrada ---------- */
+.login{min-height:100dvh;display:grid;place-items:center;padding:24px}
+.caixa-login{
+  width:100%;max-width:380px;background:var(--carvao);border:1px solid var(--linha);
+  border-radius:var(--raio-g);padding:32px 26px;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.45);
+}
+.caixa-login img{margin:0 auto 14px;border-radius:50%}
+.caixa-login h1{font-size:26px;color:var(--amarelo);letter-spacing:.02em}
+.caixa-login > p{margin:8px 0 22px;color:var(--texto-suave);font-size:14.5px}
+.caixa-login label{display:block;text-align:left;margin-bottom:16px}
+.caixa-login label span{display:block;font-size:13px;color:var(--texto-suave);margin-bottom:6px}
+.caixa-login input{
+  width:100%;padding:14px 16px;font-size:17px;letter-spacing:.12em;
+  background:var(--giz);color:var(--texto);border:1px solid var(--linha);border-radius:var(--raio);
+}
+.caixa-login .erro{min-height:20px;margin:12px 0 0;color:#FF8D82;font-size:14px}
+.caixa-login small{display:block;margin-top:14px;color:var(--texto-suave);font-size:12.5px}
+
+/* ---------- topo do painel ---------- */
+.topo .marca{display:flex;flex-direction:column;line-height:1.15;margin-right:auto}
+.topo .marca small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-suave)}
+.topo .marca strong{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:19px;letter-spacing:.03em}
+.contador:empty{display:none}
+.contador{
+  display:inline-grid;place-items:center;min-width:23px;height:23px;padding:0 6px;margin-left:6px;
+  background:var(--vermelho);color:#fff;border-radius:999px;font:700 12.5px/1 "Inter",sans-serif;
+  vertical-align:2px;animation:pulsa 1.6s ease-in-out infinite;
+}
+@keyframes pulsa{50%{transform:scale(1.14)}}
+
+.loja-estado{
+  flex:0 0 auto;padding:6px 12px;border-radius:9px;cursor:pointer;
+  font:700 12px/1.2 "Inter",sans-serif;
+  background:rgba(47,169,107,.14);color:var(--verde);border:1px solid rgba(47,169,107,.45);
+}
+.loja-estado[data-fechada="true"]{
+  background:rgba(216,38,28,.16);color:#FF8D82;border-color:rgba(216,38,28,.5);
+}
+
+/* botões do topo: discretos, só o necessário */
+.topo .sair{
+  flex:0 0 auto;padding:6px 11px;border-radius:9px;cursor:pointer;
+  font:600 12px/1.2 "Inter",sans-serif;letter-spacing:0;
+  background:transparent;color:var(--texto-suave);
+  border:1px solid var(--linha);
+}
+.topo .sair:hover{color:var(--texto);border-color:var(--texto-suave)}
+
+.conexao{font-size:12.5px;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.conexao[data-ok="sim"]{color:var(--verde);background:rgba(47,169,107,.12)}
+.conexao[data-ok="nao"]{color:#FF8D82;background:rgba(216,38,28,.14)}
+
+/* ---------- barra de controles ---------- */
+.barra{
+  display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;
+  max-width:1180px;margin:0 auto;padding:16px;
+}
+.filtros{display:flex;gap:8px}
+.filtros button{
+  padding:7px 13px;border-radius:9px;border:1px solid var(--linha);
+  background:var(--giz);color:var(--texto-suave);font:600 12.5px/1.2 "Inter",sans-serif;cursor:pointer;
+}
+.filtros button[aria-pressed="true"]{background:var(--amarelo);color:#fff;border-color:var(--amarelo)}
+.ajustes{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.campo-taxa span{display:block;font-size:11.5px;color:var(--texto-suave);margin-bottom:4px}
+.campo-taxa input{
+  width:104px;padding:9px 12px;background:var(--giz);color:var(--texto);
+  border:1px solid var(--linha);border-radius:10px;font-size:15px;
+}
+.alternar{
+  padding:7px 12px;border-radius:9px;border:1px solid var(--linha);
+  background:transparent;color:var(--texto-suave);font:600 12px/1.2 "Inter",sans-serif;cursor:pointer;
+}
+.alternar[aria-pressed="true"]{color:var(--texto);border-color:var(--texto-suave)}
+.alternar[aria-pressed="false"]{color:var(--texto-suave)}
+
+/* ---------- lista de pedidos ---------- */
+.lista{
+  max-width:1180px;margin:0 auto;padding:4px 16px 40px;
+  display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));align-items:start;
+}
+.vazio{
+  grid-column:1/-1;margin:48px auto;max-width:440px;text-align:center;
+  color:var(--texto-suave);font-size:15px;line-height:1.6;
+}
+
+.pedido{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);
+  padding:16px 16px 14px;display:flex;flex-direction:column;gap:9px;
+  border-left:5px solid var(--linha);
+}
+.pedido[data-status="novo"]{
+  border-left-color:var(--amarelo);box-shadow:0 0 0 1px rgba(212,42,32,.18),0 14px 34px rgba(0,0,0,.34);
+}
+.pedido[data-status="preparando"]{border-left-color:#E08A1E}
+.pedido[data-status="saiu"]{border-left-color:var(--verde)}
+.pedido[data-status="concluido"],.pedido[data-status="recusado"]{opacity:.55}
+
+.pedido header{display:flex;align-items:center;gap:9px}
+.pedido .num{font-family:"Anton",Impact,sans-serif;font-size:21px;letter-spacing:.04em;color:var(--amarelo)}
+.pedido .etapa{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  padding:4px 9px;border-radius:999px;background:var(--giz-claro);color:var(--texto-suave);
+}
+.pedido .e-novo{background:var(--amarelo);color:#fff}
+.pedido .e-preparando{background:rgba(224,138,30,.2);color:#F0B463}
+.pedido .e-saiu{background:rgba(47,169,107,.18);color:#6BD3A0}
+.pedido .hora{margin-left:auto;font-size:12.5px;color:var(--texto-suave);white-space:nowrap}
+
+.pedido .quem{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pedido .quem strong{font-size:16.5px}
+.pedido .tipo{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--giz-claro)}
+.pedido .t-entrega{color:#8FC9FF}
+.pedido .t-retirada{color:#C9C3B4}
+.pedido .fone{color:var(--verde);font-size:14px;text-decoration:none;font-weight:600}
+.pedido .fone:hover{text-decoration:underline}
+.pedido .endereco{margin:0;font-size:13.5px;color:var(--texto-suave);line-height:1.45}
+.pedido .itens{margin:2px 0;font-size:14px;line-height:1.5}
+.pedido .pagto{margin:0;font-size:13.5px;color:var(--texto-suave)}
+
+.pedido .rodape{display:flex;align-items:baseline;gap:10px;margin-top:2px}
+.pedido .total{font-family:"Anton",Impact,sans-serif;font-size:23px;color:var(--amarelo)}
+.pedido .jaimpresso{font-size:12px;color:var(--verde)}
+
+.pedido .acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pedido .acoes button{
+  flex:1 1 auto;padding:11px 13px;border-radius:12px;border:1px solid var(--linha);
+  background:var(--giz);color:var(--texto);font:700 14px/1 "Inter",sans-serif;cursor:pointer;
+}
+.pedido .acoes .principal{background:var(--amarelo);color:#fff;border-color:var(--amarelo);flex:1 1 100%}
+.pedido .acoes .recusar{flex:0 0 auto;color:#FF8D82;background:transparent}
+.pedido .acoes button:hover{filter:brightness(1.08)}
+
+/* ---------- rodapé ---------- */
+.rodape-painel{
+  max-width:1180px;margin:0 auto;padding:22px 16px 60px;border-top:1px solid var(--linha);
+  color:var(--texto-suave);font-size:13.5px;text-align:center;
+}
+.rodape-painel p{margin:0 0 10px}
+.rodape-painel a{color:var(--amarelo);text-decoration:none}
+
+/* ---------- a comanda só aparece na impressão ----------
+   Precisa ser @media screen: sem isso esta regra também valia na
+   impressão (ela vem depois de comanda.css) e jogava o papel para
+   fora da folha, saindo em branco. */
+@media screen{
+  .papel{position:fixed;left:-99999px;top:0}
+}
+
+@media (max-width:560px){
+  .barra{gap:10px;padding:12px}
+  .ajustes{width:100%}
+  .lista{grid-template-columns:1fr;padding:4px 12px 32px}
+  /* no celular as cinco abas precisam caber: quebram em duas linhas
+     em vez de a última ficar escondida fora da tela */
+  .filtros{flex-wrap:wrap;width:100%}
+  .filtros button{flex:1 1 auto;padding:10px 12px;font-size:13.5px}
+}
+
+/* ---------- histórico e resumo do dia ---------- */
+.caixa-data{display:flex;align-items:center;gap:8px;padding-left:6px}
+.caixa-data span{font-size:12px;color:var(--texto-suave)}
+.caixa-data input{
+  padding:8px 10px;background:var(--giz);color:var(--texto);
+  border:1px solid var(--linha);border-radius:10px;font-size:14px;
+}
+.resumo{
+  max-width:1180px;margin:0 auto 4px;padding:12px 16px;
+  display:flex;flex-wrap:wrap;gap:10px 22px;align-items:baseline;
+  border-top:1px solid var(--linha);border-bottom:1px solid var(--linha);
+  font-size:14px;color:var(--texto-suave);
+}
+.resumo b{color:var(--texto);font-size:17px;font-weight:800}
+.resumo .rec{color:#FF8D82}
+.resumo .dia{margin-left:auto;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px}
+
+.pedido .acoes .reabrir{flex:1 1 100%;background:transparent;color:var(--amarelo);border-color:rgba(212,42,32,.4)}
+.pedido .acoes .avisar{flex:1 1 100%;background:rgba(47,169,107,.14);color:#6BD3A0;border-color:rgba(47,169,107,.35)}
+.pedido .fone{color:var(--texto-suave);font-size:14px;font-weight:600}
+
+/* ---------- caixa e relatórios ---------- */
+.caixa{max-width:1180px;margin:0 auto;padding:8px 16px 60px}
+.cx-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:8px 0 18px}
+.cx-topo h2{font-size:22px;color:var(--amarelo)}
+.cx-selo{font-size:12.5px;padding:5px 12px;border-radius:999px}
+.cx-selo.aberto{color:var(--verde);background:rgba(47,169,107,.13)}
+.cx-selo.fechado{color:var(--texto-suave);background:var(--giz-claro)}
+
+.cx-grade{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));align-items:start}
+.cx-cartao{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);padding:18px 18px 16px;
+}
+.cx-cartao h3{
+  margin:0 0 12px;font:800 11.5px/1 "Inter",sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--texto-suave);
+}
+.cx-linha{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:7px 0;font-size:14.5px}
+.cx-linha + .cx-linha{border-top:1px solid rgba(255,255,255,.05)}
+.cx-linha i{font-style:normal;font-size:12px;color:var(--texto-suave);margin-left:4px}
+.cx-linha b{font-weight:700;white-space:nowrap}
+.cx-linha.forte{font-weight:800}
+.cx-linha.forte b{color:var(--texto);font-size:17px}
+.cx-linha.menos b{color:#FF8D82}
+.cx-linha.lucro{margin-top:6px;padding-top:12px;border-top:2px solid var(--linha)}
+.cx-linha.lucro b{color:var(--verde);font-family:"Anton",Impact,sans-serif;font-size:24px;font-weight:400}
+.cx-nota{margin:12px 0 0;font-size:12.5px;color:var(--texto-suave);line-height:1.5}
+
+.cx-despesas{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+.cx-despesas li{display:flex;align-items:center;gap:10px;font-size:14px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.cx-despesas li span{flex:1;min-width:0;overflow-wrap:anywhere}
+.cx-despesas li b{white-space:nowrap}
+.cx-despesas li button{
+  background:transparent;border:0;color:var(--texto-suave);cursor:pointer;font-size:15px;padding:2px 4px;
+}
+.cx-despesas li button:hover{color:#FF8D82}
+.cx-despesas .vazia{color:var(--texto-suave);border:0;justify-content:center}
+
+.cx-form{display:flex;gap:8px}
+.cx-form input{
+  padding:11px 12px;background:var(--giz);color:var(--texto);
+  border:1px solid var(--linha);border-radius:10px;font-size:14.5px;min-width:0;
+}
+.cx-form input:first-child{flex:1}
+.cx-form input:nth-child(2){width:92px}
+.cx-form button{
+  padding:11px 15px;border-radius:10px;border:1px solid var(--linha);
+  background:var(--giz-claro);color:var(--texto);font:700 14px/1 "Inter",sans-serif;cursor:pointer;
+}
+
+.cx-acoes{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 0}
+.cx-acoes button{
+  padding:13px 18px;border-radius:12px;border:1px solid var(--linha);
+  background:var(--giz);color:var(--texto);font:700 14.5px/1 "Inter",sans-serif;cursor:pointer;
+}
+.cx-acoes .principal{background:var(--amarelo);color:#fff;border-color:var(--amarelo)}
+.cx-acoes .larga{flex:1 1 280px}
+.cx-acoes .cx-reabrir{color:var(--amarelo);background:transparent;border-color:rgba(212,42,32,.4)}
+
+.cx-relatorio{margin-top:26px;padding-top:22px;border-top:1px solid var(--linha)}
+.cx-relatorio h3{margin:0 0 16px;font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:20px;color:var(--amarelo);text-transform:capitalize}
+.cx-tabela{width:100%;margin-top:18px;border-collapse:collapse;font-size:14px}
+.cx-tabela th,.cx-tabela td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06)}
+.cx-tabela th:first-child,.cx-tabela td:first-child{text-align:left}
+.cx-tabela th{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)}
+
+@media (max-width:560px){
+  .caixa{padding:8px 12px 40px}
+  .cx-form{flex-wrap:wrap}
+  .cx-form input:nth-child(2){width:100%}
+}
+.cx-ajuda{margin:-4px 0 12px;font-size:12.5px;line-height:1.45;color:var(--texto-suave)}
+.cx-despesas li span{color:var(--texto-suave);font-size:13px;flex:0 0 auto}
+.cx-despesas li b{flex:1;text-align:right}
+.cx-form input:first-child{flex:1}
+
+/* ---------- aba Balcão (a comanda trazida para dentro do painel) ---------- */
+.balcao{max-width:1500px;margin:0 auto;padding:8px 16px 60px}
+.balcao .bloco{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);
+  padding:18px;margin-bottom:16px;
+}
+.balcao .bloco h2{font-size:18px;color:var(--amarelo);margin-bottom:6px}
+.balcao .ajuda{margin:0 0 12px;font-size:13.5px;line-height:1.5;color:var(--texto-suave)}
+.balcao textarea{
+  width:100%;min-height:120px;padding:13px;resize:vertical;
+  background:var(--giz);color:var(--texto);border:1px solid var(--linha);
+  border-radius:var(--raio);font:inherit;font-size:14.5px;
+}
+.balcao .botoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.balcao .botoes button{
+  flex:1 1 auto;padding:12px 15px;border-radius:12px;border:1px solid var(--linha);
+  background:var(--giz);color:var(--texto);font:700 14px/1 "Inter",sans-serif;cursor:pointer;
+}
+.balcao .botoes .principal{background:var(--amarelo);color:#fff;border-color:var(--amarelo)}
+.balcao .botoes .larga{flex:1 1 100%}
+.balcao .campos{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:14px}
+.balcao .campo span{display:block;font-size:11.5px;color:var(--texto-suave);margin-bottom:4px}
+.balcao .campo input{
+  width:110px;padding:9px 12px;background:var(--giz);color:var(--texto);
+  border:1px solid var(--linha);border-radius:10px;font-size:15px;
+}
+.balcao .marca{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--texto-suave)}
+.balcao .aviso{margin:10px 0 0;font-size:13.5px;color:#F0C95F}
+.balcao .area-papel{display:flex;justify-content:center}
+.balcao .lista-comandas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.balcao .lista-comandas button{
+  width:100%;text-align:left;padding:11px 13px;border-radius:12px;cursor:pointer;
+  background:var(--giz);border:1px solid var(--linha);color:var(--texto);font:600 14px/1.4 "Inter",sans-serif;
+}
+.balcao .guia{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);padding:16px 18px;
+}
+.balcao .guia summary{cursor:pointer;font-weight:700;font-size:14.5px}
+.balcao .guia ol{margin:12px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6;color:var(--texto-suave)}
+.balcao .guia a{color:var(--amarelo)}
+
+/* o papel fica escondido, menos quando a aba Balcão está aberta.
+   Só na tela (@media screen): impresso de verdade, essa regra tinha
+   mais força que o "margin:0" da folha de impressão e centralizava o
+   papel, cortando a lateral esquerda na impressora térmica. */
+@media screen{
+  body.ver-papel .papel{position:static;left:auto;margin:0 auto}
+}
+.pedido .t-mesa{color:var(--amarelo-forte)}
+
+
+/* ---------- relatório do mês ---------- */
+.cx-cartao.destaque-mes{ border-color: rgba(212,42,32,.45); }
+.cx-tabela tfoot th{
+  background: rgba(212,42,32,.12);
+  color: var(--amarelo);
+  font-weight: 800;
+  border-top: 2px solid rgba(212,42,32,.4);
+}
+.cx-tabela tbody td b{ color: #EDEAE2; }
+.cx-linha i{ opacity: .6; font-style: normal; font-size: .85em; }
+
+
+/* ---------- comanda fechada no balcão, dentro da lista do dia ---------- */
+.pedido.do-balcao{border-color:rgba(212,42,32,.28)}
+.pedido .etapa.e-balcao{background:rgba(212,42,32,.16);color:var(--amarelo)}
+.pedido.do-balcao .jaimpresso{color:var(--texto-suave)}
+
+/* ---------- preparar o sistema para valer (apagar testes) ---------- */
+.zona-perigo{max-width:1180px;margin:0 auto;padding:0 16px 28px}
+.zona-perigo summary{cursor:pointer;font:600 12.5px/1.3 "Inter",sans-serif;color:var(--texto-suave)}
+.zona-perigo p{margin:10px 0;font-size:13px;line-height:1.5;color:var(--texto-suave)}
+.btn-perigo{
+  padding:9px 14px;border-radius:9px;cursor:pointer;
+  font:700 12.5px/1.2 "Inter",sans-serif;
+  background:rgba(216,38,28,.14);color:#FF8D82;border:1px solid rgba(216,38,28,.5);
+}
+.btn-perigo:disabled{opacity:.5;cursor:default}
+.zona-status{color:var(--amarelo)!important}
+
+/* ---------- edição do cardápio ---------- */
+.cardapio-editor{max-width:1180px;margin:0 auto;padding:4px 16px 40px}
+.ed-topo{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+.ed-topo h2{font:700 18px/1.2 "Inter",sans-serif;margin:0}
+.ed-ajuda{margin:4px 0 0;font-size:12.5px;color:var(--texto-suave);line-height:1.5}
+.ed-acoes{display:flex;align-items:center;gap:10px}
+.ed-status{font-size:12px;color:var(--texto-suave)}
+.ed-status[data-sujo="true"]{color:var(--amarelo);font-weight:700}
+.ed-acoes .principal{padding:8px 14px;border-radius:9px;border:1px solid var(--amarelo);
+  background:var(--amarelo);color:#fff;font:700 12.5px/1.2 "Inter",sans-serif;cursor:pointer}
+.ed-acoes .principal:disabled{opacity:.5;cursor:default}
+
+.ed-busca input{width:100%;max-width:340px;padding:8px 11px;border-radius:9px;font-size:13px;
+  background:var(--giz);color:var(--texto);border:1px solid var(--linha)}
+.ed-grupos{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.ed-grupos button{padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;
+  background:var(--giz);color:var(--texto-suave);border:1px solid var(--linha)}
+.ed-grupos button.ativo{background:var(--amarelo);color:#fff;border-color:var(--amarelo);font-weight:700}
+
+.ed-lista{display:grid;gap:8px}
+.ed-item{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:start;
+  background:var(--carvao);border:1px solid var(--linha);border-radius:12px;padding:10px}
+.ed-item.mudou{border-color:rgba(212,42,32,.5)}
+.ed-item.esgotado{opacity:.55}
+.ed-foto{width:64px;height:64px;border-radius:9px;overflow:hidden;background:var(--giz);
+  display:grid;place-items:center}
+.ed-foto img{width:100%;height:100%;object-fit:cover}
+.ed-semfoto{font-size:10px;color:var(--texto-suave);text-align:center}
+.ed-dados{display:grid;gap:6px;min-width:0}
+.ed-nome,.ed-desc{width:100%;padding:7px 9px;border-radius:8px;font:inherit;
+  background:var(--giz);color:var(--texto);border:1px solid var(--linha)}
+.ed-nome{font-size:13.5px;font-weight:700}
+.ed-desc{font-size:12px;line-height:1.45;resize:vertical}
+.ed-lado{display:grid;gap:6px;justify-items:end}
+.ed-preco{display:grid;gap:3px}
+.ed-preco span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--texto-suave)}
+.ed-preco input{width:92px;padding:7px 9px;border-radius:8px;font-size:13px;text-align:right;
+  background:var(--giz);color:var(--amarelo);font-weight:700;border:1px solid var(--linha)}
+.ed-off{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--texto-suave);cursor:pointer}
+.ed-voltar{padding:4px 8px;border-radius:7px;cursor:pointer;font-size:10.5px;
+  background:transparent;color:var(--texto-suave);border:1px solid var(--linha)}
+.ed-vazio{color:var(--texto-suave);font-size:13px;padding:16px 2px}
+@media (max-width:640px){
+  .ed-item{grid-template-columns:52px 1fr}
+  .ed-lado{grid-column:1/-1;justify-items:stretch;grid-template-columns:1fr auto auto;align-items:end}
+  .ed-preco input{width:100%}
+}
+
+/* correções do editor: não herdar o estilo de outras áreas do painel */
+.cardapio-editor h2{font-family:"Inter",system-ui,sans-serif!important;letter-spacing:0!important;
+  text-transform:none!important;font-weight:700!important;font-size:18px!important;color:var(--texto)!important}
+.cardapio-editor textarea.ed-desc{min-height:0!important;height:auto!important;
+  padding:7px 9px!important;font-size:12px!important;border-radius:8px!important}
+.cardapio-editor .ed-grupos button{flex:0 0 auto!important;padding:5px 11px!important;
+  font:600 12px/1.2 "Inter",sans-serif!important;border-radius:8px!important;min-height:0!important}
+.cardapio-editor .ed-lado button{padding:4px 9px!important;font-size:10.5px!important;min-height:0!important}
+
+/* trocar a foto do item */
+.ed-foto{position:relative}
+.ed-trocar-foto{position:absolute;left:0;right:0;bottom:0;cursor:pointer;
+  background:rgba(0,0,0,.72);color:#fff;font:600 9.5px/1 "Inter",sans-serif;
+  text-align:center;padding:4px 0;letter-spacing:.04em;text-transform:uppercase}
+.ed-trocar-foto:hover{background:var(--amarelo);color:#fff}
+
+/* botão de esgotar produto: um toque, salva na hora */
+.ed-estoque{
+  padding:6px 12px;border-radius:8px;cursor:pointer;min-width:96px;
+  font:700 11.5px/1.2 "Inter",sans-serif;letter-spacing:.02em;
+  transition:background .15s ease,color .15s ease;
+}
+.ed-estoque.tem{background:rgba(47,169,107,.14);color:var(--verde);border:1px solid rgba(47,169,107,.45)}
+.ed-estoque.fora{background:rgba(216,38,28,.16);color:#FF8D82;border:1px solid rgba(216,38,28,.55)}
+.ed-estoque:disabled{opacity:.6;cursor:default}
+
+/* ---------- faixas de aviso de funcionamento ---------- */
+.faixa-alerta,.faixa-erro{
+  display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+  width:100%;padding:11px 16px;border:0;cursor:pointer;
+  font:600 13.5px/1.4 "Inter",sans-serif;text-align:center;
+}
+.faixa-alerta{background:var(--amarelo);color:#fff}
+.faixa-alerta b{font-weight:800;text-decoration:underline}
+.faixa-erro{background:rgba(216,38,28,.18);color:#FF8D82;cursor:default;
+  border-top:1px solid rgba(216,38,28,.4);border-bottom:1px solid rgba(216,38,28,.4)}
+.faixa-erro button{padding:6px 12px;border-radius:8px;cursor:pointer;
+  font:700 12px/1.2 "Inter",sans-serif;background:#FF8D82;color:#2a0d0a;border:0}

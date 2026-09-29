@@ -1,0 +1,1342 @@
+/* =========================================================
+   Pizzaria San Francisco — Painel de Pedidos (painel.html)
+   Criasiteweb
+
+   O pedido sai do site do cliente e cai aqui na hora.
+   A loja escuta o alerta, confere e imprime.
+
+   As funções que montam a comanda vêm de comanda-core.js.
+   ========================================================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  browserLocalPersistence, setPersistence, updatePassword,
+  EmailAuthProvider, reauthenticateWithCredential
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+import {
+  getFirestore, collection, query, where, orderBy, onSnapshot, getDocs,
+  doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, limit
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+import { FIREBASE_CONFIG, CONTA_LOJA } from "./firebase-config.js";
+
+const app  = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* ========================= atalhos ========================= */
+const el = (s, r = document) => r.querySelector(s);
+const els = (s, r = document) => [...r.querySelectorAll(s)];
+
+const ETAPAS = {
+  novo:       { rotulo: "Novo",        proxima: "preparando", acao: "Aceitar e imprimir", avisar: "Avisar que recebemos" },
+  preparando: { rotulo: "Preparando",  proxima: "saiu",       acao: "Saiu para entrega",  avisar: "Avisar que está pronto" },
+  saiu:       { rotulo: "A caminho",   proxima: "concluido",  acao: "Concluir",              avisar: "Avisar que saiu para entrega" },
+  concluido:  { rotulo: "Concluído",   proxima: null,         acao: null, reabre: true,      avisar: "Agradecer" },
+  recusado:   { rotulo: "Recusado",    proxima: null,         acao: null, reabre: true,      avisar: "Avisar que não dá" }
+};
+
+let pedidos = [];          // os do dia que está na tela, mais novos primeiro
+let primeiraCarga = true;  // não apita ao abrir a tela
+let filtro = "abertos";    // abertos | todos | historico
+let dataHistorico = null;  // "AAAA-MM-DD" quando olhando um dia passado
+
+/* ========================= proteções de funcionamento =========================
+   Esta tela fica aberta a noite inteira num balcão. Três coisas podem
+   estragá-la em silêncio, e cada uma tem aqui a sua rede de segurança. */
+
+/* 1) O navegador bloqueia som até alguém tocar na página. Sem isto, o pedido
+      chegaria e ninguém ouviria o apito. */
+function avisarSomBloqueado(bloqueado) {
+  const f = el("[data-aviso-som]");
+  if (f) f.hidden = !bloqueado;
+}
+
+/* 2) Um erro solto deixaria a tela morta sem ninguém perceber. */
+function avisarErro() {
+  const f = el("[data-aviso-erro]");
+  if (f) f.hidden = false;
+}
+window.addEventListener("error", avisarErro);
+window.addEventListener("unhandledrejection", avisarErro);
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-recarregar]")) location.reload();
+});
+
+/* 3) O espaço do aparelho pode encher e travar as comandas guardadas. */
+window.guardarComSeguranca = function (chave, texto) {
+  try { localStorage.setItem(chave, texto); return true; }
+  catch (e) {
+    try {
+      /* joga fora o que é descartável e tenta de novo */
+      localStorage.removeItem("rb_comanda_seq");
+      localStorage.setItem(chave, texto);
+      return true;
+    } catch (e2) {
+      alert("A memória deste aparelho está cheia. Feche as comandas antigas ou use outro navegador.");
+      return false;
+    }
+  }
+};
+
+/* ========================= alerta sonoro ========================= */
+/* Gerado na hora pelo navegador — sem arquivo de som para carregar. */
+let audioCtx = null;
+function apitar(vezes = 3) {
+  if (localStorage.getItem("rb_som") === "nao") return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+      /* ainda suspenso quer dizer que o navegador exige um toque na tela */
+      setTimeout(() => avisarSomBloqueado(audioCtx.state === "suspended"), 300);
+    } else {
+      avisarSomBloqueado(false);
+    }
+    for (let i = 0; i < vezes; i++) {
+      const t0 = audioCtx.currentTime + i * 0.38;
+      const osc = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();   // segunda voz: dobra o corpo do som
+      const vol = audioCtx.createGain();
+      const forte = audioCtx.createDynamicsCompressor();  // empurra o volume para cima
+      forte.threshold.setValueAtTime(-28, t0);
+      forte.ratio.setValueAtTime(12, t0);
+      osc.type = "square";                        // onda cheia, corta o barulho da cozinha
+      osc2.type = "sine";
+      osc.frequency.setValueAtTime(950, t0);
+      osc.frequency.setValueAtTime(1300, t0 + 0.14);
+      osc2.frequency.setValueAtTime(475, t0);
+      osc2.frequency.setValueAtTime(650, t0 + 0.14);
+      vol.gain.setValueAtTime(0.0001, t0);
+      vol.gain.exponentialRampToValueAtTime(1.0, t0 + 0.02);
+      vol.gain.setValueAtTime(1.0, t0 + 0.26);
+      vol.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
+      osc.connect(vol); osc2.connect(vol);
+      vol.connect(forte); forte.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.36);
+      osc2.start(t0); osc2.stop(t0 + 0.36);
+    }
+  } catch (e) { /* navegador sem áudio: o aviso visual continua valendo */ }
+}
+
+/* O alerta volta a tocar enquanto houver pedido novo sem ninguém mexer.
+   Para no instante em que a loja aceita, imprime ou recusa. */
+let insistir = null;
+
+function comecarInsistencia() {
+  if (insistir) return;
+  insistir = setInterval(() => {
+    const temNovo = pedidos.some(p => p.status === "novo");
+    if (!temNovo) { pararInsistencia(); return; }
+    apitar(2);
+    document.title = "🔔 PEDIDO ESPERANDO — Pizzaria San Francisco";
+  }, 20000);
+}
+
+function pararInsistencia() {
+  clearInterval(insistir); insistir = null;
+  document.title = "Painel de Pedidos | Pizzaria San Francisco";
+}
+
+function avisarNaTela(p) {
+  document.title = "🔔 PEDIDO NOVO — Pizzaria San Francisco";
+  setTimeout(() => { document.title = "Painel de Pedidos | Pizzaria San Francisco"; }, 12000);
+  if ("Notification" in window && Notification.permission === "granted") {
+    try {
+      new Notification("Pedido novo — Pizzaria San Francisco", {
+        body: `${p.cliente || "Cliente"} · ${p.tipo || ""} · ${reais(p.total || 0)}`,
+        tag: p.id
+      });
+    } catch (e) {}
+  }
+}
+
+/* ========================= entrar / sair ========================= */
+function mostrarLogin(mostrar) {
+  el("[data-tela-login]").hidden = !mostrar;
+  el("[data-tela-painel]").hidden = mostrar;
+}
+
+el("[data-form-login]").addEventListener("submit", async e => {
+  e.preventDefault();
+  const senha = el("[data-senha]").value;
+  const aviso = el("[data-erro-login]");
+  const botao = el("[data-entrar]");
+  aviso.textContent = "";
+  botao.disabled = true; botao.textContent = "Entrando…";
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    await signInWithEmailAndPassword(auth, CONTA_LOJA, senha);
+  } catch (err) {
+    const cod = String(err && err.code || "");
+    aviso.textContent = /wrong-password|invalid-credential|invalid-login/.test(cod)
+      ? "Senha incorreta. Confira e tente de novo."
+      : /network/.test(cod)
+        ? "Sem internet. Verifique a conexão do computador."
+        : "Não consegui entrar agora. Tente novamente em instantes.";
+  } finally {
+    botao.disabled = false; botao.textContent = "Entrar";
+  }
+});
+
+el("[data-sair]").addEventListener("click", async () => {
+  if (!confirm("Sair do painel? Você vai precisar digitar a senha de novo.")) return;
+  await signOut(auth);
+});
+
+onAuthStateChanged(auth, usuario => {
+  if (usuario) {
+    mostrarLogin(false);
+    el("[data-senha]").value = "";
+    acessoPrivadoLiberado = false;
+    pintarAcessoPrivado();
+    limparPedidosAntigos();
+    escutarPedidos();
+    escutarPedidosDaMesa();
+    lerEstadoLoja();
+    carregarAjustesCardapio();
+    carregarCaixa(hojeISO()).then(() => {
+      if (window.rbAoCarregarComandas) window.rbAoCarregarComandas();
+    });
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  } else {
+    mostrarLogin(true);
+    if (pararDeEscutar) { pararDeEscutar(); pararDeEscutar = null; }
+    pedidos = []; primeiraCarga = true;
+  }
+});
+
+/* ========================= ouvir os pedidos ========================= */
+let pararDeEscutar = null;
+
+function faixaDoDia(iso) {
+  /* iso = "AAAA-MM-DD"; sem iso, é hoje */
+  const d = iso ? new Date(iso + "T00:00:00") : new Date();
+  d.setHours(0, 0, 0, 0);
+  const fim = new Date(d); fim.setDate(fim.getDate() + 1);
+  return { de: Timestamp.fromDate(d), ate: Timestamp.fromDate(fim) };
+}
+
+function inicioDeHoje() { return faixaDoDia().de; }
+
+/* histórico: busca um dia já passado, uma vez só */
+async function carregarHistorico(iso) {
+  const { de, ate } = faixaDoDia(iso);
+  el("[data-lista]").innerHTML = `<p class="vazio">Buscando os pedidos de ${formatarData(iso)}…</p>`;
+  try {
+    const r = await getDocs(query(
+      collection(db, "pedidos"),
+      where("criadoEm", ">=", de), where("criadoEm", "<", ate),
+      orderBy("criadoEm", "desc")
+    ));
+    pedidos = r.docs.map(d => ({ id: d.id, ...d.data() }));
+    numerarDoDia();
+    desenhar();
+  } catch (e) {
+    console.error(e);
+    el("[data-lista]").innerHTML = `<p class="vazio">Não consegui buscar esse dia. Verifique a internet e tente de novo.</p>`;
+  }
+}
+
+function formatarData(iso) {
+  if (!iso) return "hoje";
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
+function escutarPedidos() {
+  if (pararDeEscutar) pararDeEscutar();
+  /* ao (re)abrir a escuta, a primeira leva não é "pedido novo" —
+     senão o painel apitaria para todos os pedidos já existentes do dia */
+  primeiraCarga = true;
+  const consulta = query(
+    collection(db, "pedidos"),
+    where("criadoEm", ">=", inicioDeHoje()),
+    orderBy("criadoEm", "desc")
+  );
+  pararDeEscutar = onSnapshot(consulta, instantaneo => {
+    marcarConexao(true);
+    const novos = [];
+    instantaneo.docChanges().forEach(m => {
+      if (m.type === "added" && !primeiraCarga) novos.push({ id: m.doc.id, ...m.doc.data() });
+    });
+    pedidos = instantaneo.docs.map(d => ({ id: d.id, ...d.data() }));
+    numerarDoDia();
+    desenhar();
+    if (filtro === "caixa") desenharCaixa();
+    if (novos.length) { apitar(); novos.forEach(avisarNaTela); }
+    if (pedidos.some(p => p.status === "novo")) comecarInsistencia();
+    else pararInsistencia();
+    primeiraCarga = false;
+  }, erro => {
+    marcarConexao(false);
+    console.error(erro);
+    el("[data-lista]").innerHTML =
+      `<p class="vazio">Perdi a conexão com o servidor de pedidos. Verifique a internet — assim que voltar, os pedidos aparecem sozinhos.</p>`;
+  });
+}
+
+/* ========================= pedidos da mesa (restaurante.html) =========================
+   Cada rodada de pedido de uma mesa entra em "pedidos_mesa". Aqui a gente
+   escuta os que ainda estão "novo", manda pra comanda daquela mesa no
+   Balcão (balcao.js) e marca como "importado" pra não somar de novo. */
+let pararDeEscutarMesa = null;
+let primeiraCargaMesa = true;
+
+function escutarPedidosDaMesa() {
+  if (pararDeEscutarMesa) pararDeEscutarMesa();
+  primeiraCargaMesa = true;
+  const consulta = query(
+    collection(db, "pedidos_mesa"),
+    where("status", "==", "novo"),
+    orderBy("criadoEm", "asc")
+  );
+  pararDeEscutarMesa = onSnapshot(consulta, async instantaneo => {
+    const chegaram = [];
+    instantaneo.docChanges().forEach(m => {
+      if (m.type === "added") chegaram.push({ id: m.doc.id, ...m.doc.data() });
+    });
+    if (!chegaram.length) { primeiraCargaMesa = false; return; }
+    for (const p of chegaram) {
+      if (typeof window.rbImportarPedidoMesa === "function") {
+        window.rbImportarPedidoMesa(p.mesa, p.itens || [], p.cliente || "");
+      }
+      try { await updateDoc(doc(db, "pedidos_mesa", p.id), { status: "importado" }); } catch (e) {}
+    }
+    if (!primeiraCargaMesa) apitar();
+    primeiraCargaMesa = false;
+  }, erro => { console.error("pedidos_mesa:", erro); });
+}
+
+/* o número da comanda é a ordem de chegada no dia */
+function numerarDoDia() {
+  const totalHoje = pedidos.length;
+  pedidos.forEach((p, i) => { p.numero = String(totalHoje - i).padStart(3, "0"); });
+}
+
+function marcarConexao(ok) {
+  const s = el("[data-conexao]");
+  s.dataset.ok = ok ? "sim" : "nao";
+  s.textContent = ok ? "Recebendo pedidos" : "Sem conexão";
+}
+
+/* ========================= desenhar a tela ========================= */
+function tempoDesde(ts) {
+  if (!ts || !ts.toDate) return "";
+  const min = Math.floor((Date.now() - ts.toDate().getTime()) / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  return `há ${h}h${String(min % 60).padStart(2, "0")}`;
+}
+
+function horaDe(ts) {
+  if (!ts || !ts.toDate) return "";
+  return ts.toDate().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+}
+
+function resumoItens(p) {
+  /* pedido do site vem como texto; comanda do balcão já vem com a lista pronta */
+  if (Array.isArray(p.itens) && p.itens.length) {
+    return p.itens.map(i => `${i.q}x ${esc(i.nome)}`).join(" · ");
+  }
+  const lido = p.texto ? lerPedido(p.texto) : null;
+  if (!lido || !lido.itens.length) return "";
+  return lido.itens.map(i => `${i.q}x ${esc(i.nome)}`).join(" · ");
+}
+
+function cartao(p) {
+  if (p.balcao) return cartaoBalcao(p);
+  const etapa = ETAPAS[p.status] || ETAPAS.novo;
+  const entrega = /entrega/i.test(p.tipo || "");
+  const noLocal = /restaurante|mesa/i.test(p.tipo || "");
+  return `
+  <article class="pedido" data-status="${esc(p.status)}" data-id="${esc(p.id)}">
+    <header>
+      <span class="num">#${esc(p.numero)}</span>
+      <span class="etapa e-${esc(p.status)}">${esc(etapa.rotulo)}</span>
+      <span class="hora" title="${horaDe(p.criadoEm)}">${tempoDesde(p.criadoEm)}</span>
+    </header>
+
+    <div class="quem">
+      <strong>${esc(p.cliente) || "Sem nome"}</strong>
+      <span class="tipo ${entrega ? "t-entrega" : noLocal ? "t-mesa" : "t-retirada"}">${
+        entrega ? "Entrega" : noLocal ? "No restaurante" : "Retirada"
+      }</span>
+    </div>
+
+    ${p.fone ? `<span class="fone">${esc(p.fone)}</span>` : ""}
+    ${entrega && p.endereco ? `<p class="endereco">${esc(p.endereco)}</p>` : ""}
+
+    <p class="itens">${resumoItens(p)}</p>
+    ${p.pagamento ? `<p class="pagto">${esc(p.pagamento)}</p>` : ""}
+
+    <div class="rodape">
+      <span class="total">${reais(p.total || 0)}</span>
+      ${p.impresso ? `<span class="jaimpresso">impresso</span>` : ""}
+    </div>
+
+    <div class="acoes">
+      <button type="button" class="principal" data-imprimir="${esc(p.id)}">Imprimir</button>
+      ${etapa.proxima ? `<button type="button" data-avancar="${esc(p.id)}">${esc(p.status === "novo" && !imprimirAuto ? "Aceitar pedido" : etapa.acao)}</button>` : ""}
+      ${p.status === "novo" ? `<button type="button" class="recusar" data-recusar="${esc(p.id)}">Recusar</button>` : ""}
+      ${p.fone ? `<button type="button" class="avisar" data-avisar="${esc(p.id)}">${esc(etapa.avisar || "Avisar cliente")}</button>` : ""}
+      ${etapa.reabre ? `<button type="button" class="reabrir" data-reabrir="${esc(p.id)}">Reabrir pedido</button>` : ""}
+    </div>
+  </article>`;
+}
+
+/* cartão de uma comanda fechada no balcão: é registro de venda, não pedido
+   em andamento — por isso só mostra o que foi vendido e como foi pago */
+function cartaoBalcao(v) {
+  const entrega = /entrega/i.test(v.tipo || "");
+  const noLocal = /restaurante|mesa/i.test(v.tipo || "");
+  return `
+  <article class="pedido do-balcao" data-status="concluido" data-id="${esc(v.id)}">
+    <header>
+      <span class="num">#${esc(v.numero)}</span>
+      <span class="etapa e-balcao">Balcão</span>
+      <span class="hora">${esc(v.hora || "")}</span>
+    </header>
+
+    <div class="quem">
+      <strong>${esc(v.cliente) || "Sem nome"}</strong>
+      <span class="tipo ${entrega ? "t-entrega" : noLocal ? "t-mesa" : "t-retirada"}">${
+        entrega ? "Entrega" : noLocal ? "No restaurante" : "Retirada"
+      }</span>
+    </div>
+
+    ${entrega && v.endereco ? `<p class="endereco">${esc(v.endereco)}</p>` : ""}
+    <p class="itens">${resumoItens(v)}</p>
+    ${v.forma || v.pagamento ? `<p class="pagto">${esc(v.forma || v.pagamento)}</p>` : ""}
+
+    <div class="rodape">
+      <span class="total">${reais(v.total || 0)}</span>
+      <span class="jaimpresso">lançada no caixa</span>
+    </div>
+  </article>`;
+}
+
+function desenhar() {
+  const lista = el("[data-lista]");
+  const noCaixa  = filtro === "caixa";
+  const noBalcao = filtro === "balcao";
+  const noEditor = filtro === "cardapio";
+  el("[data-caixa]").hidden  = !noCaixa;
+  el("[data-balcao]").hidden = !noBalcao;
+  el("[data-editor]").hidden = !noEditor;
+  document.body.classList.toggle("ver-papel", noBalcao);
+  lista.hidden = noCaixa || noBalcao || noEditor;
+  el("[data-resumo]").hidden = noCaixa || noBalcao || noEditor || !(pedidos.length || (caixaDoDia.comandas || []).length);
+
+  if (noEditor) {
+    els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
+    el("[data-caixa-data]").hidden = true;
+    if (typeof edDesenhar === "function") edDesenhar();
+    return;
+  }
+
+  if (noBalcao) {
+    els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
+    el("[data-caixa-data]").hidden = true;
+    return;
+  }
+  if (noCaixa) {
+    els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
+    el("[data-caixa-data]").hidden = false;
+    desenharCaixa();
+    return;
+  }
+  const abertos = p => !["concluido", "recusado"].includes(p.status);
+  /* as comandas fechadas no balcão são vendas do dia como as outras:
+     aparecem em "Todos de hoje" e no histórico, nunca em "Em aberto" */
+  const doBalcao = (caixaDoDia.comandas || []).map(v =>
+    Object.assign({}, v, { id: v.id, balcao: true, status: v.status || "concluido" }));
+  const todosDoDia = pedidos.concat(doBalcao);
+  const visiveis = filtro === "abertos" ? pedidos.filter(abertos) : todosDoDia;
+
+  el("[data-contador]").textContent =
+    filtro === "historico" ? "" : (pedidos.filter(p => p.status === "novo").length || "");
+  els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
+  el("[data-caixa-data]").hidden = filtro !== "historico";
+
+  resumoDoDia();
+
+  if (!visiveis.length) {
+    lista.innerHTML =
+      filtro === "abertos"
+        ? `<p class="vazio">Nenhum pedido em aberto. Quando chegar um novo, o computador vai apitar.</p>`
+        : filtro === "historico"
+          ? `<p class="vazio">Nenhum pedido em ${formatarData(dataHistorico)}.</p>`
+          : `<p class="vazio">Nenhum pedido hoje ainda.</p>`;
+    return;
+  }
+  lista.innerHTML = visiveis.map(cartao).join("");
+}
+
+/* faturamento e contagem do dia que está na tela */
+function resumoDoDia() {
+  const caixa = el("[data-resumo]");
+  const doBalcao = caixaDoDia.comandas || [];
+  const tudo = pedidos.concat(doBalcao);
+  const valem = tudo.filter(p => p.status !== "recusado");
+  if (!tudo.length) { caixa.hidden = true; return; }
+  const soma = valem.reduce((t, p) => t + (Number(p.total) || 0), 0);
+  const recusados = tudo.length - valem.length;
+  caixa.hidden = false;
+  caixa.innerHTML = `
+    <span><b>${valem.length}</b> ${valem.length === 1 ? "pedido" : "pedidos"}</span>
+    <span><b>${reais(soma)}</b> em vendas</span>
+    ${recusados ? `<span class="rec">${recusados} recusado${recusados > 1 ? "s" : ""}</span>` : ""}
+    <span class="dia">${filtro === "historico" ? formatarData(dataHistorico) : "hoje"}</span>`;
+}
+
+/* atualiza os "há X min" sem recarregar nada */
+setInterval(() => { if (pedidos.length && !el("[data-tela-painel]").hidden) desenhar(); }, 60000);
+
+
+/* =========================================================
+   Caixa do dia e relatório do mês
+   As contas ficam em caixa.js; aqui é só tela e gravação.
+   ========================================================= */
+let caixaDoDia = { despesas: [], fechado: false };
+let diaDoCaixa = null;
+
+/* Data no fuso do aparelho (Brasília). NUNCA usar toISOString() para isto:
+   ela devolve a data de Londres, e das 21h à meia-noite — o pico da loja —
+   já é o dia seguinte lá. Isso fazia venda da noite cair no relatório do dia
+   seguinte e a comanda zerar a numeração às 21h. */
+function diaISO(data) {
+  const d = data || new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+    "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function hojeISO() { return diaISO(); }
+
+function diaAtual() { return filtro === "historico" && dataHistorico ? dataHistorico : hojeISO(); }
+
+async function carregarCaixa(iso) {
+  diaDoCaixa = iso;
+  try {
+    const d = await getDoc(doc(db, "caixa", iso));
+    caixaDoDia = d.exists() ? { despesas: [], fechado: false, ...d.data() } : { despesas: [], fechado: false };
+  } catch (e) {
+    caixaDoDia = { despesas: [], fechado: false };
+  }
+}
+
+async function gravarCaixa() {
+  try {
+    await setDoc(doc(db, "caixa", diaDoCaixa), caixaDoDia, { merge: true });
+  } catch (e) {
+    alert("Não consegui salvar. Verifique a internet e tente de novo.");
+  }
+}
+
+function linhaValor(rot, valor, cls = "") {
+  return `<div class="cx-linha ${cls}"><span>${rot}</span><b>${reais(valor)}</b></div>`;
+}
+
+function desenharCaixa() {
+  const alvo = el("[data-caixa]");
+  if (!alvo) return;
+  const doBalcao = (caixaDoDia.comandas || []);
+  const a = apurar(pedidos.concat(doBalcao));
+  const desp = somaDespesas(caixaDoDia.despesas);
+  const lucro = a.liquido - desp;
+  const dia = diaDoCaixa === hojeISO() ? "hoje" : formatarData(diaDoCaixa);
+
+  alvo.innerHTML = `
+    <div class="cx-topo">
+      <h2>Caixa de ${dia}</h2>
+      ${caixaDoDia.fechado
+        ? `<span class="cx-selo fechado">✓ Caixa fechado${caixaDoDia.fechadoEm ? " às " + caixaDoDia.fechadoEm : ""}</span>`
+        : `<span class="cx-selo aberto">● Caixa aberto</span>`}
+    </div>
+
+    <div class="cx-grade">
+
+      <section class="cx-cartao">
+        <h3>Entrou por forma de pagamento</h3>
+        ${FORMAS.map(f => `
+          <div class="cx-linha">
+            <span>${f.rotulo} <i>${a.contagem[f.chave]}x</i></span>
+            <b>${reais(a.porForma[f.chave])}</b>
+          </div>`).join("")}
+        ${a.porForma.outro ? linhaValor("Outros", a.porForma.outro) : ""}
+        ${linhaValor("Total recebido", a.bruto, "forte")}
+      </section>
+
+      <section class="cx-cartao">
+        <h3>Fechamento</h3>
+        ${linhaValor("Vendas (com taxa)", a.bruto)}
+        ${linhaValor("− Taxa do motoboy", a.taxas, "menos")}
+        ${linhaValor("− Mercadoria", desp, "menos")}
+        <div class="cx-linha lucro"><span>= Lucro do dia</span><b>${reais(lucro)}</b></div>
+        <p class="cx-nota">${a.quantidade} ${a.quantidade === 1 ? "venda" : "vendas"}${doBalcao.length ? ` · ${doBalcao.length} do balcão` : ""}${a.recusados ? ` · ${a.recusados} recusado${a.recusados > 1 ? "s" : ""}` : ""}</p>
+      </section>
+
+      <section class="cx-cartao">
+        <h3>Mercadoria</h3>
+        <p class="cx-ajuda">Quanto saiu do caixa para repor estoque hoje. Pode lançar várias vezes.</p>
+        <ul class="cx-despesas">
+          ${(caixaDoDia.despesas || []).map((d, i) => `
+            <li>
+              <span>${d.hora || "—"}</span>
+              <b>${reais(d.valor)}</b>
+              <button type="button" data-apaga-despesa="${i}" title="Apagar">✕</button>
+            </li>`).join("") || `<li class="vazia">Nada lançado ainda.</li>`}
+        </ul>
+        ${(caixaDoDia.despesas || []).length > 1
+          ? `<div class="cx-linha forte"><span>Total em mercadoria</span><b>${reais(desp)}</b></div>` : ""}
+        <form class="cx-form" data-form-despesa>
+          <input type="text" inputmode="decimal" data-valor placeholder="0,00" required />
+          <button type="submit">Lançar gasto</button>
+        </form>
+      </section>
+
+    </div>
+
+    <div class="cx-acoes">
+      ${caixaDoDia.fechado
+        ? `<button type="button" class="cx-reabrir" data-reabrir-caixa>Reabrir o caixa</button>`
+        : `<button type="button" class="principal larga" data-fechar-caixa>Fechar o caixa de ${dia}</button>`}
+      <button type="button" data-relatorio>Relatório do mês</button>
+    </div>
+
+    <div class="cx-relatorio" data-relatorio-mes hidden></div>`;
+}
+
+/* ---------- relatório mensal ---------- */
+const NOMES_MES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+/* Seletor de mês em forma de calendário: um botão só na tela, que abre uma
+   gradezinha com os doze meses e setas para trocar de ano. Meses que ainda
+   não chegaram ficam apagados. */
+let anoDoSeletor = new Date().getFullYear();
+let seletorAberto = false;
+
+function barraDeMeses(selecionado) {
+  const sel = String(selecionado || hojeISO());
+  const [anoSel, mesSel] = sel.split("-").map(Number);
+  const rotulo = `${NOMES_MES[mesSel - 1]} de ${anoSel}`;
+
+  if (!seletorAberto) {
+    return `<div class="cx-meses">
+      <button type="button" class="cx-mes-abre" data-abrir-meses>${rotulo} <i>▾</i></button>
+    </div>`;
+  }
+
+  /* Sem trava de ano nem de mês: ele pode consultar qualquer período, para
+     trás ou para a frente, e o sistema não precisa de manutenção com o tempo. */
+  const grade = NOMES_MES.map((nome, i) => {
+    const m = i + 1;
+    const ativo = anoDoSeletor === anoSel && m === mesSel;
+    const iso = `${anoDoSeletor}-${String(m).padStart(2, "0")}-01`;
+    return `<button type="button" data-mes="${iso}" class="${ativo ? "ativo" : ""}">${nome.slice(0, 3)}</button>`;
+  }).join("");
+
+  return `<div class="cx-meses">
+    <button type="button" class="cx-mes-abre aberto" data-abrir-meses>${rotulo} <i>▴</i></button>
+    <div class="cx-calendario">
+      <div class="cx-cal-ano">
+        <button type="button" data-ano="${anoDoSeletor - 1}" aria-label="Ano anterior">‹</button>
+        <b>${anoDoSeletor}</b>
+        <button type="button" data-ano="${anoDoSeletor + 1}" aria-label="Próximo ano">›</button>
+      </div>
+      <div class="cx-cal-grade">${grade}</div>
+    </div>
+  </div>`;
+}
+
+let mesDoRelatorio = hojeISO();
+
+async function relatorioMes(iso) {
+  const alvo = el("[data-relatorio-mes]");
+  mesDoRelatorio = iso || hojeISO();
+  anoDoSeletor = Number(String(mesDoRelatorio).slice(0, 4)) || anoDoSeletor;
+  const [ano, mes] = mesDoRelatorio.split("-");
+  alvo.hidden = false;
+  alvo.innerHTML = barraDeMeses(mesDoRelatorio) + `<p class="vazio">Somando o mês…</p>`;
+
+  const de = new Date(+ano, +mes - 1, 1);
+  const ate = new Date(+ano, +mes, 1);
+  try {
+    const r = await getDocs(query(
+      collection(db, "pedidos"),
+      where("criadoEm", ">=", Timestamp.fromDate(de)),
+      where("criadoEm", "<", Timestamp.fromDate(ate)),
+      orderBy("criadoEm", "asc")
+    ));
+    const todos = r.docs.map(d => d.data());
+    const porDia = {};
+    todos.forEach(p => {
+      const dia = p.criadoEm && p.criadoEm.toDate
+        ? diaISO(p.criadoEm.toDate()) : "?";
+      (porDia[dia] = porDia[dia] || []).push(p);
+    });
+
+    /* mercadoria do mês: soma o que foi lançado no caixa de cada dia */
+    const prefixo = `${ano}-${mes}`;
+    let mercadoria = 0;
+    const gastoPorDia = {};
+    try {
+      const cx = await getDocs(collection(db, "caixa"));
+      cx.docs.forEach(d => {
+        if (!d.id.startsWith(prefixo)) return;
+        const dados = d.data() || {};
+        const soma = somaDespesas(dados.despesas);
+        gastoPorDia[d.id] = soma;
+        mercadoria += soma;
+        /* as comandas do balcão são vendas como as outras */
+        (dados.comandas || []).forEach(v => {
+          (porDia[d.id] = porDia[d.id] || []).push(v);
+          todos.push(v);
+        });
+      });
+    } catch (e) { /* sem acesso ao caixa: o relatório sai sem a mercadoria */ }
+
+    const a = apurar(todos);
+    const dias = Object.keys(porDia).sort();
+    const melhor = dias.reduce((m, d) =>
+      apurar(porDia[d]).bruto > (m.v || 0) ? { d, v: apurar(porDia[d]).bruto } : m, {});
+    const sobrou = a.liquido - mercadoria;
+    const diasComVenda = dias.length || 1;
+
+    alvo.innerHTML = barraDeMeses(mesDoRelatorio) + `
+      <h3>Relatório de ${de.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h3>
+      <div class="cx-grade">
+
+        <section class="cx-cartao destaque-mes">
+          <h3>O mês em números</h3>
+          ${linhaValor("Faturamento total (com a taxa)", a.bruto, "forte")}
+          ${linhaValor("− O motoboy ganhou", a.taxas, "menos")}
+          ${linhaValor("= Venda da comanda", a.liquido)}
+          ${linhaValor("− Gastou de mercadoria", mercadoria, "menos")}
+          <div class="cx-linha lucro"><span>= Líquido do mês</span><b>${reais(sobrou)}</b></div>
+          <p class="cx-nota">
+            ${a.quantidade} ${a.quantidade === 1 ? "pedido" : "pedidos"} em ${dias.length} ${dias.length === 1 ? "dia" : "dias"}
+            · média de ${reais(a.quantidade ? a.bruto / a.quantidade : 0)} por pedido
+            · ${reais(a.bruto / diasComVenda)} por dia
+          </p>
+          ${melhor.d ? `<p class="cx-nota">Melhor dia: ${formatarData(melhor.d)} com ${reais(melhor.v)}</p>` : ""}
+          ${mercadoria === 0 ? `<p class="cx-nota">Nenhum gasto de mercadoria foi lançado neste mês.</p>` : ""}
+        </section>
+
+        <section class="cx-cartao">
+          <h3>Por forma de pagamento</h3>
+          ${FORMAS.map(f => `<div class="cx-linha"><span>${f.rotulo} <i>${a.contagem[f.chave]}x</i></span><b>${reais(a.porForma[f.chave])}</b></div>`).join("")}
+          ${a.porForma.outro ? linhaValor("Outros", a.porForma.outro) : ""}
+          ${linhaValor("Total recebido", a.bruto, "forte")}
+        </section>
+
+      </div>
+
+      <table class="cx-tabela">
+        <thead><tr><th>Dia</th><th>Pedidos</th><th>Faturou</th><th>Motoboy</th><th>Mercadoria</th><th>Líquido</th></tr></thead>
+        <tbody>
+          ${dias.map(d => {
+            const x = apurar(porDia[d]);
+            const g = gastoPorDia[d] || 0;
+            return `<tr>
+              <td>${formatarData(d)}</td>
+              <td>${x.quantidade}</td>
+              <td>${reais(x.bruto)}</td>
+              <td>${reais(x.taxas)}</td>
+              <td>${reais(g)}</td>
+              <td><b>${reais(x.liquido - g)}</b></td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th>Total do mês</th>
+            <th>${a.quantidade}</th>
+            <th>${reais(a.bruto)}</th>
+            <th>${reais(a.taxas)}</th>
+            <th>${reais(mercadoria)}</th>
+            <th>${reais(sobrou)}</th>
+          </tr>
+        </tfoot>
+      </table>`;
+  } catch (e) {
+    console.error(e);
+    alvo.innerHTML = barraDeMeses(mesDoRelatorio) + `<p class="vazio">Não consegui montar o relatório. Verifique a internet.</p>`;
+  }
+}
+
+/* ---------- cliques dentro do caixa ---------- */
+document.addEventListener("click", async e => {
+  if (el("[data-caixa]") && el("[data-caixa]").hidden) return;
+
+  if (e.target.closest("[data-fechar-caixa]")) {
+    if (!confirm("Fechar o caixa deste dia? Dá para reabrir depois.")) return;
+    caixaDoDia.fechado = true;
+    caixaDoDia.fechadoEm = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    await gravarCaixa(); desenharCaixa(); return;
+  }
+  if (e.target.closest("[data-reabrir-caixa]")) {
+    caixaDoDia.fechado = false;
+    await gravarCaixa(); desenharCaixa(); return;
+  }
+  if (e.target.closest("[data-relatorio]")) { relatorioMes(diaDoCaixa); return; }
+
+  if (e.target.closest("[data-abrir-meses]")) {
+    seletorAberto = !seletorAberto;
+    relatorioMes(mesDoRelatorio); return;
+  }
+
+  const ba = e.target.closest("[data-ano]");
+  if (ba) { anoDoSeletor = Number(ba.dataset.ano); relatorioMes(mesDoRelatorio); return; }
+
+  const bm = e.target.closest("[data-mes]");
+  if (bm) { seletorAberto = false; relatorioMes(bm.dataset.mes); return; }
+
+  const apaga = e.target.closest("[data-apaga-despesa]");
+  if (apaga) {
+    caixaDoDia.despesas.splice(Number(apaga.dataset.apagaDespesa), 1);
+    await gravarCaixa(); desenharCaixa();
+  }
+});
+
+document.addEventListener("submit", async e => {
+  const f = e.target.closest("[data-form-despesa]");
+  if (!f) return;
+  e.preventDefault();
+  const valor = paraNumero(f.querySelector("[data-valor]").value);
+  if (!(valor > 0)) return alert("Digite quanto foi gasto.");
+  caixaDoDia.despesas = caixaDoDia.despesas || [];
+  caixaDoDia.despesas.push({
+    descricao: "Mercadoria",
+    valor,
+    hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  });
+  await gravarCaixa(); desenharCaixa();
+});
+
+/* =========================================================
+   IMPRESSÃO automática ao aceitar pedido do site.
+   Sempre ligada, sem botão pra desligar (pedido do Matheus em
+   25/09/2026: "tira ele, não é necessário").
+   ========================================================= */
+const imprimirAuto = true;
+
+/* ========================= ações ========================= */
+function achar(id) { return pedidos.find(p => p.id === id); }
+
+el("[data-lista]").addEventListener("click", async e => {
+  const bi = e.target.closest("[data-imprimir]");
+  const ba = e.target.closest("[data-avancar]");
+  const br = e.target.closest("[data-recusar]");
+
+  if (bi) {
+    const p = achar(bi.dataset.imprimir);
+    if (p) imprimir(p);
+    return;
+  }
+  if (ba) {
+    const p = achar(ba.dataset.avancar);
+    const prox = p && (ETAPAS[p.status] || ETAPAS.novo).proxima;
+    if (!prox) return;
+    /* aceitar um pedido novo já manda a comanda para a impressora:
+       é o gesto que o balcão faz de qualquer jeito, em um clique só */
+    if (p.status === "novo") {
+      if (imprimirAuto) { imprimir(p); return; }
+      pararInsistencia();
+      await mudarStatus(p.id, "preparando");
+      return;
+    }
+    await mudarStatus(p.id, prox);
+    return;
+  }
+  if (br) {
+    const p = achar(br.dataset.recusar);
+    if (p && confirm(`Recusar o pedido #${p.numero} de ${p.cliente || "cliente"}?\n\nDá para voltar atrás depois, em "Todos de hoje".`)) {
+      await mudarStatus(p.id, "recusado");
+    }
+    return;
+  }
+
+  const bw = e.target.closest("[data-avisar]");
+  if (bw) {
+    const p = achar(bw.dataset.avisar);
+    if (p) avisarCliente(p);
+    return;
+  }
+
+  const bv = e.target.closest("[data-reabrir]");
+  if (bv) {
+    const p = achar(bv.dataset.reabrir);
+    if (p) await mudarStatus(p.id, "novo");   // volta para a fila como pedido novo
+  }
+});
+
+async function mudarStatus(id, status) {
+  try {
+    await updateDoc(doc(db, "pedidos", id), { status });
+    /* quando o pedido sai para entrega, oferece avisar o cliente na hora:
+       é o momento em que ele mais quer saber */
+    if (status === "saiu") {
+      const p = achar(id);
+      if (p && p.fone) {
+        p.status = "saiu";
+        setTimeout(() => {
+          if (confirm("Avisar o cliente pelo WhatsApp que o pedido saiu para entrega?")) avisarCliente(p);
+        }, 150);
+      }
+    }
+  } catch (e) {
+    alert("Não consegui salvar a mudança. Verifique a internet e tente de novo.");
+  }
+}
+
+
+/* ========================= ponte com a comanda do balcão =========================
+   A comanda fechada vira uma venda de verdade: fica guardada dentro do caixa do
+   dia e entra no total por forma de pagamento, junto com os pedidos do site. */
+window.rbComandas = {
+  dia: () => diaDoCaixa,
+  listar: () => (caixaDoDia.comandas || []).slice(),
+
+  gravar: async (c) => {
+    /* pode acontecer de fecharem uma comanda antes do caixa terminar de
+       carregar: sem isto a gravação iria para um dia indefinido e se perderia */
+    if (!diaDoCaixa) await carregarCaixa(hojeISO());
+    caixaDoDia.comandas = caixaDoDia.comandas || [];
+    const i = caixaDoDia.comandas.findIndex(x => x.id === c.id);
+    if (i >= 0) caixaDoDia.comandas[i] = c; else caixaDoDia.comandas.push(c);
+    await gravarCaixa();
+    desenharCaixa();
+    if (filtro !== "caixa" && filtro !== "balcao") desenhar();
+    return true;
+  },
+
+  remover: async (id) => {
+    if (!diaDoCaixa) await carregarCaixa(hojeISO());
+    caixaDoDia.comandas = (caixaDoDia.comandas || []).filter(x => x.id !== id);
+    await gravarCaixa();
+    desenharCaixa();
+    if (filtro !== "caixa" && filtro !== "balcao") desenhar();
+    return true;
+  }
+};
+
+/* ========================= avisar o cliente ========================= */
+/* Abre o WhatsApp do cliente com a mensagem já escrita, conforme a etapa.
+   É um toque do atendente — nada é enviado sozinho. */
+/* Sem emojis de propósito: no aparelho do cliente eles chegavam como
+   quadradinho, o que passa impressão de mensagem quebrada. Acentos normais. */
+const RECADOS = {
+  novo: p => `Oi ${primeiroNome(p)}! Recebemos seu pedido *#${p.numero}* aqui na Pizzaria San Francisco. Já vamos preparar!`,
+  preparando: p => `Oi ${primeiroNome(p)}! Seu pedido *#${p.numero}* já está sendo preparado. Fica pronto em cerca de 40 minutos.`,
+  saiu: p => /entrega/i.test(p.tipo || "")
+    ? `Oi ${primeiroNome(p)}! Seu pedido *#${p.numero}* saiu para entrega e chega em instantes. Bom apetite!`
+    : `Oi ${primeiroNome(p)}! Seu pedido *#${p.numero}* está pronto para retirada. Te esperamos!`,
+  concluido: p => `Oi ${primeiroNome(p)}! Obrigado pela preferência. Qualquer coisa é só chamar. Bom apetite!`,
+  recusado: p => `Oi ${primeiroNome(p)}! Infelizmente não vamos conseguir atender seu pedido *#${p.numero}* agora. Desculpe pelo transtorno!`
+};
+
+function primeiroNome(p) {
+  return String(p.cliente || "").trim().split(/\s+/)[0] || "tudo bem";
+}
+
+function avisarCliente(p) {
+  const numero = String(p.fone || "").replace(/\D/g, "");
+  if (numero.length < 10) return alert("Este pedido não veio com um WhatsApp válido.");
+  const recado = (RECADOS[p.status] || RECADOS.novo)(p);
+  window.open(`https://wa.me/55${numero}?text=${encodeURIComponent(recado)}`, "_blank", "noopener");
+}
+
+/* ========================= imprimir ========================= */
+function imprimir(p) {
+  const lido = p.texto ? lerPedido(p.texto) : null;
+  const papel = el("[data-papel]");
+  papel.innerHTML = lido
+    ? comandaHTML(lido, p.numero)
+    : `<div class="cru">${esc(p.texto || "")}</div>`;
+  window.print();
+  updateDoc(doc(db, "pedidos", p.id), { impresso: true }).catch(() => {});
+  if (p.status === "novo") { mudarStatus(p.id, "preparando"); pararInsistencia(); }
+}
+
+/* ========================= controles de cima ========================= */
+els("[data-filtro]").forEach(b => b.addEventListener("click", () => {
+  filtro = b.dataset.filtro;
+  if (filtro === "balcao" || filtro === "cardapio") { desenhar(); return; }
+  if (filtro === "caixa") {
+    const campo = el("[data-data]");
+    const hoje = hojeISO();
+    /* se o painel ficou aberto passando da meia-noite, o campo de data
+       não pode continuar travado no dia anterior — só mantém uma data
+       diferente de hoje se o dono escolheu ela de propósito (dataHistorico) */
+    if (!dataHistorico) campo.value = hoje;
+    dataHistorico = campo.value === hoje ? null : campo.value;
+    (async () => {
+      if (dataHistorico) await carregarHistorico(dataHistorico); else escutarPedidos();
+      await carregarCaixa(campo.value);
+      desenhar();
+    })();
+    return;
+  }
+  if (filtro === "historico") {
+    const campo = el("[data-data]");
+    if (!campo.value) campo.value = ontemISO();
+    dataHistorico = campo.value;
+    el("[data-caixa-data]").hidden = false;
+    carregarHistorico(dataHistorico);
+  } else {
+    dataHistorico = null;
+    escutarPedidos();   // volta para o dia de hoje, ao vivo
+  }
+  desenhar();
+}));
+
+function ontemISO() {
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return diaISO(d);
+}
+
+el("[data-data]").addEventListener("change", async e => {
+  if (filtro === "caixa") {
+    const iso = e.target.value || hojeISO();
+    dataHistorico = iso === hojeISO() ? null : iso;
+    if (dataHistorico) await carregarHistorico(dataHistorico); else escutarPedidos();
+    await carregarCaixa(iso);
+    desenhar();
+    return;
+  }
+  dataHistorico = e.target.value;
+  const hoje = hojeISO();
+  if (!dataHistorico || dataHistorico === hoje) {
+    filtro = "todos"; dataHistorico = null; escutarPedidos(); desenhar();
+  } else {
+    carregarHistorico(dataHistorico);
+  }
+});
+
+const botaoSom = el("[data-som]");
+function pintarSom() {
+  const ligado = localStorage.getItem("rb_som") !== "nao";
+  botaoSom.textContent = ligado ? "Som ligado" : "Som desligado";
+  botaoSom.setAttribute("aria-pressed", String(ligado));
+}
+botaoSom.addEventListener("click", () => {
+  const ligado = localStorage.getItem("rb_som") !== "nao";
+  localStorage.setItem("rb_som", ligado ? "nao" : "sim");
+  pintarSom();
+  if (!ligado) apitar(1);   // acabou de ligar: toca uma vez para conferir
+});
+pintarSom();
+
+el("[data-testar-som]").addEventListener("click", () => apitar(2));
+
+/* o primeiro toque em qualquer lugar libera o som no navegador */
+["click", "keydown", "touchstart"].forEach(ev =>
+  document.addEventListener(ev, function liberar() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume().then(() => avisarSomBloqueado(false));
+      else avisarSomBloqueado(false);
+    } catch (e) {}
+  }, { once: true, passive: true })
+);
+
+/* confere o som assim que a tela abre, sem esperar chegar pedido */
+setTimeout(() => {
+  try {
+    const t = new (window.AudioContext || window.webkitAudioContext)();
+    avisarSomBloqueado(t.state === "suspended");
+    t.close();
+  } catch (e) {}
+}, 1200);
+
+/* ========================= aviso de internet caída =========================
+   O painel é a porta de entrada dos pedidos: se a internet cair, quem está no
+   balcão precisa saber na hora, e não descobrir depois com o cliente ligando. */
+function pintarConexao(ok) {
+  const c = el("[data-conexao]");
+  if (!c) return;
+  c.dataset.ok = ok ? "sim" : "nao";
+  c.textContent = ok ? "Conectado" : "SEM INTERNET";
+}
+window.addEventListener("offline", () => pintarConexao(false));
+window.addEventListener("online", () => {
+  pintarConexao(true);
+  escutarPedidos();
+  lerEstadoLoja();
+});
+
+/* ========================= cardápio editado pelo dono ========================= */
+async function carregarAjustesCardapio() {
+  try {
+    const d = await getDoc(doc(db, "publico", "cardapio"));
+    if (d.exists()) window.ajustes = d.data().itens || {};
+  } catch (e) { /* sem acesso: o cardápio do arquivo continua valendo */ }
+  if (typeof edDesenhar === "function") edDesenhar();
+}
+
+window.salvarCardapio = async function (silencioso) {
+  try {
+    await setDoc(doc(db, "publico", "cardapio"), {
+      itens: window.ajustes || {},
+      mudadoEm: Timestamp.now()
+    });
+    if (!silencioso && typeof marcarSujo === "function") marcarSujo(false);
+    return true;
+  } catch (e) { return false; }
+};
+
+el("[data-ed-salvar]").addEventListener("click", async () => {
+  const b = el("[data-ed-salvar]"), st = el("[data-ed-status]");
+  b.disabled = true; st.textContent = "Salvando…"; st.dataset.sujo = "false";
+  try {
+    await setDoc(doc(db, "publico", "cardapio"), {
+      itens: window.ajustes || {},
+      mudadoEm: Timestamp.now()
+    });
+    st.textContent = "Salvo. O site muda em até 2 minutos.";
+    if (typeof marcarSujo === "function") marcarSujo(false);
+    setTimeout(() => { if (st.textContent.startsWith("Salvo")) st.textContent = ""; }, 6000);
+  } catch (e) {
+    st.textContent = "Não consegui salvar. Verifique a internet e tente de novo.";
+    st.dataset.sujo = "true";
+  }
+  b.disabled = false;
+});
+
+/* ========================= abrir e fechar a loja =========================
+   O selo do site do cliente segue o horário; este botão manda nele.
+   Serve para fechar antes da hora (acabou o gás) ou abrir fora do horário
+   (ex.: movimento forte e quer abrir mais cedo). */
+let lojaAberta = null;   // null = seguir o horário
+
+/* mesmo horário do site do cliente: 17h30 às 23h40, todos os dias */
+const HORARIO = { abre: 17.5, fecha: 23.6667, diasFechados: [] };
+
+function dentroDoHorario() {
+  const a = new Date();
+  const h = a.getHours() + a.getMinutes() / 60;
+  return !HORARIO.diasFechados.includes(a.getDay()) && h >= HORARIO.abre && h < HORARIO.fecha;
+}
+
+/* o site está aceitando pedido neste instante? o botão manda; sem ele, o horário */
+function siteAceitandoPedido() {
+  return lojaAberta === null ? dentroDoHorario() : lojaAberta;
+}
+
+function pintarLoja() {
+  const b = el("[data-loja-estado]");
+  if (!b) return;
+  const aberta = siteAceitandoPedido();
+  b.textContent = aberta ? "Loja aberta" : "Loja fechada";
+  b.setAttribute("aria-pressed", String(aberta));
+  b.dataset.fechada = String(!aberta);
+}
+
+async function lerEstadoLoja() {
+  try {
+    const d = await getDoc(doc(db, "publico", "loja"));
+    const v = d.exists() ? d.data() : null;
+    /* o ajuste na mão vale só para o dia em que foi feito: no dia seguinte
+       a loja volta a seguir o horário sozinha, sem ninguém precisar lembrar */
+    lojaAberta = (v && v.dia === hojeISO()) ? (v.aberta !== false) : null;
+  } catch (e) { lojaAberta = null; }
+  pintarLoja();
+}
+
+/* O botão faz o contrário do que o site está fazendo agora:
+   site aceitando pedido  -> fecha a loja na hora (acabou o gás, muito movimento)
+   site recusando pedido  -> abre a loja na hora, mesmo fora do horário
+
+   O ajuste vale só para o dia de hoje: virou o dia, a loja volta a seguir o
+   horário sozinha, para ninguém esquecer o site aberto de madrugada. */
+el("[data-loja-estado]").addEventListener("click", async () => {
+  const fechando = siteAceitandoPedido();
+  const aviso = fechando
+    ? "Fechar a loja agora?\n\nO site vai mostrar FECHADO e não deixa o cliente enviar pedido, mesmo dentro do horário."
+    : dentroDoHorario()
+      ? "Reabrir a loja?\n\nO site volta a mostrar ABERTO e a aceitar pedidos."
+      : "Abrir a loja agora, fora do horário?\n\nO site vai mostrar ABERTO e aceitar pedido até o fim do dia de hoje. Amanhã volta sozinho ao horário normal.";
+  if (!confirm(aviso)) return;
+
+  const antes = lojaAberta;
+  lojaAberta = !fechando;
+  pintarLoja();
+  try {
+    await setDoc(doc(db, "publico", "loja"), {
+      aberta: !fechando,
+      dia: hojeISO(),
+      mudadoEm: Timestamp.now()
+    });
+  } catch (e) {
+    lojaAberta = antes; pintarLoja();
+    alert("Não consegui salvar. Verifique a internet e tente de novo.");
+  }
+});
+
+/* ========================= atualizar o sistema =========================
+   O navegador guarda a página para abrir mais rápido, e às vezes fica com uma
+   versão antiga. Este botão joga fora o que estiver guardado e busca a nova. */
+el("[data-atualizar]").addEventListener("click", async () => {
+  const b = el("[data-atualizar]");
+  b.disabled = true; b.textContent = "Atualizando…";
+  try {
+    if (window.caches && caches.keys) {
+      const nomes = await caches.keys();
+      await Promise.all(nomes.map(n => caches.delete(n)));
+    }
+  } catch (e) {}
+  const u = new URL(location.href);
+  u.searchParams.set("atualizado", String(Date.now()));
+  location.replace(u.toString());
+});
+
+/* ========================= limpeza automática de 6 meses =========================
+   Só a coleção "pedidos" (nome, telefone, endereço do cliente) é limpa.
+   O "caixa" (faturamento, resumo do dia) é gravado à parte e fica para
+   sempre, então não é afetado por esta limpeza. Roda uma vez por sessão,
+   quando o painel abre, em lotes de até 300 por vez para não pesar. */
+async function limparPedidosAntigos() {
+  try {
+    const seisMesesAtras = new Date();
+    seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6);
+    const r = await getDocs(query(
+      collection(db, "pedidos"),
+      where("criadoEm", "<", Timestamp.fromDate(seisMesesAtras)),
+      limit(300)
+    ));
+    if (r.empty) return;
+    await Promise.all(r.docs.map(d => deleteDoc(d.ref)));
+  } catch (e) { /* sem internet ou sem permissão: tenta de novo na próxima abertura */ }
+}
+
+/* ========================= trocar a senha da loja ========================= */
+el("[data-trocar-senha]").addEventListener("click", async () => {
+  const user = auth.currentUser;
+  if (!user) return alert("Entre no painel antes de trocar a senha.");
+
+  const atual = prompt("Para sua segurança, digite a senha que você usa hoje:");
+  if (atual === null) return;
+  if (!atual.trim()) return alert("A senha de hoje não pode ficar em branco.");
+
+  const nova = prompt("Agora digite a NOVA senha (pelo menos 6 letras ou números):");
+  if (nova === null) return;
+  if (nova.trim().length < 6) return alert("A nova senha precisa ter pelo menos 6 letras ou números.");
+
+  const confere = prompt("Digite a nova senha de novo para conferir:");
+  if (confere === null) return;
+  if (confere !== nova) return alert("As duas não bateram. Nada foi alterado — tente de novo.");
+
+  try {
+    await reauthenticateWithCredential(user, EmailAuthProvider.credential(CONTA_LOJA, atual));
+    await updatePassword(user, nova);
+    alert("Pronto! A senha da loja foi trocada.\n\nAnote em lugar seguro: quem for abrir o painel em outro aparelho vai precisar dela.");
+  } catch (err) {
+    const cod = String(err && err.code || "");
+    if (/wrong-password|invalid-credential|invalid-login/.test(cod))
+      alert("A senha de hoje está errada. Nada foi alterado.");
+    else if (/weak-password/.test(cod))
+      alert("Essa senha é fraca demais. Use pelo menos 6 letras ou números.");
+    else if (/requires-recent-login/.test(cod))
+      alert("Por segurança, saia do painel, entre de novo e troque a senha logo em seguida.");
+    else if (/network/.test(cod))
+      alert("Sem internet. Tente de novo quando a conexão voltar.");
+    else
+      alert("Não consegui trocar a senha agora. Tente de novo em instantes.");
+  }
+});
+
+/* ========================= acesso privado (Caixa, Histórico, Cardápio) =========================
+   Segunda senha, separada da senha do painel. Funcionário sem ela continua
+   vendo Em aberto e Balcão, mas não abre faturamento, histórico de clientes
+   nem edição de cardápio. Guardada no servidor, em config/painel, que só a
+   conta da loja consegue ler (ver firestore.rules). */
+let acessoPrivadoLiberado = false;
+
+function pintarAcessoPrivado() {
+  const b = el("[data-acesso-privado]");
+  const bs = el("[data-trocar-senha-privada]");
+  if (b) b.textContent = acessoPrivadoLiberado ? "Acesso privado (aberto)" : "Acesso privado";
+  if (bs) bs.hidden = !acessoPrivadoLiberado;
+  els("[data-so-privado]").forEach(btn => { btn.hidden = !acessoPrivadoLiberado; });
+  if (!acessoPrivadoLiberado && ["caixa", "historico", "cardapio"].includes(filtro)) {
+    filtro = "abertos"; dataHistorico = null; escutarPedidos(); desenhar();
+  }
+}
+
+async function lerSenhaPrivada() {
+  const d = await getDoc(doc(db, "config", "painel"));
+  return d.exists() ? d.data().senha : null;
+}
+
+el("[data-acesso-privado]").addEventListener("click", async () => {
+  if (acessoPrivadoLiberado) {
+    if (!confirm("Trancar o acesso privado de novo?")) return;
+    acessoPrivadoLiberado = false;
+    pintarAcessoPrivado();
+    return;
+  }
+  let senhaGuardada;
+  try {
+    senhaGuardada = await lerSenhaPrivada();
+  } catch (e) {
+    return alert("Não consegui checar a senha agora. Verifique a internet e tente de novo.");
+  }
+  if (!senhaGuardada) {
+    if (!confirm("Ainda não existe uma senha para o acesso privado. Criar uma agora?")) return;
+    const nova = prompt("Digite a nova senha do acesso privado (pelo menos 6 letras ou números):");
+    if (nova === null) return;
+    if (nova.trim().length < 6) return alert("A senha precisa ter pelo menos 6 letras ou números.");
+    try {
+      await setDoc(doc(db, "config", "painel"), { senha: nova.trim() });
+    } catch (e) {
+      return alert("Não consegui salvar a senha agora. Tente de novo.");
+    }
+    acessoPrivadoLiberado = true;
+    pintarAcessoPrivado();
+    return;
+  }
+  const tentativa = prompt("Senha do acesso privado:");
+  if (tentativa === null) return;
+  if (tentativa !== senhaGuardada) return alert("Senha errada.");
+  acessoPrivadoLiberado = true;
+  pintarAcessoPrivado();
+});
+
+el("[data-trocar-senha-privada]").addEventListener("click", async () => {
+  if (!acessoPrivadoLiberado) return;
+  let senhaGuardada;
+  try { senhaGuardada = await lerSenhaPrivada(); } catch (e) {
+    return alert("Não consegui checar a senha agora. Verifique a internet e tente de novo.");
+  }
+  const atual = prompt("Digite a senha privada de hoje:");
+  if (atual === null) return;
+  if (atual !== senhaGuardada) return alert("A senha de hoje está errada. Nada foi alterado.");
+
+  const nova = prompt("Digite a NOVA senha do acesso privado (pelo menos 6 letras ou números):");
+  if (nova === null) return;
+  if (nova.trim().length < 6) return alert("A nova senha precisa ter pelo menos 6 letras ou números.");
+
+  const confere = prompt("Digite a nova senha de novo para conferir:");
+  if (confere === null) return;
+  if (confere !== nova) return alert("As duas não bateram. Nada foi alterado.");
+
+  try {
+    await setDoc(doc(db, "config", "painel"), { senha: nova.trim() });
+    alert("Pronto! A senha do acesso privado foi trocada.");
+  } catch (e) {
+    alert("Não consegui salvar agora. Tente de novo.");
+  }
+});
+
+/* A taxa de entrega NÃO se digita aqui: ela varia de bairro para bairro e vem
+   da tabela do site, junto com o pedido. */

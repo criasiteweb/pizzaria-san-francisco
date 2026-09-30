@@ -473,11 +473,16 @@ function itensDaComanda(lista) {
 /* uma comanda de balcão, ou uma comanda avulsa de mesa */
 function cartaoComanda(c) {
   const mesa = c.tipo === "No restaurante" && c.mesa;
+  /* o rótulo diz como o cliente vai receber, que é o que muda o trabalho */
+  const rotulo = mesa ? "No restaurante"
+    : /entrega/i.test(c.tipo || "") ? "Entrega"
+    : /restaurante|mesa/i.test(c.tipo || "") ? "No restaurante"
+    : "Balcão";
   return `
   <article class="comanda-aberta" data-comanda="${esc(c.id)}">
     <header>
       <span class="num">${mesa ? "Mesa " + esc(c.mesa) : "#" + esc(c.num)}</span>
-      <span class="etapa e-comanda">${mesa ? "No restaurante" : "Balcão"}</span>
+      <span class="etapa e-comanda">${rotulo}</span>
       <span class="hora">${esc(c.criada)}</span>
     </header>
     ${c.cliente ? `<strong class="quem">${esc(c.cliente)}</strong>` : ""}

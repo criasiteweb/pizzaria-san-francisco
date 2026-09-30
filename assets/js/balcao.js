@@ -259,20 +259,181 @@ function tentarMeioAMeio(id) {
   const nome1 = sabor1 ? sabor1.n.replace(/^\d+\s*·\s*/, "") : base1.n;
   const nome2 = sabor2 ? sabor2.n.replace(/^\d+\s*·\s*/, "") : base2.n;
 
-  const p = comanda().pedido;
-  p.itens.push({
-    ref: "", q: 1, nome: `Pizza ${tamNome ? tamNome.n : tam} · ${nome1} / ${nome2}`,
-    unit: preco, total: preco, lanches: "", adds: "", obs: ""
-  });
+  /* a meio a meio também escolhe borda e adicionais, igual no site.
+     A borda segue o sabor 1: se ele for doce, aparecem as bordas doces. */
   mmPrimeiro = null;
-  recalcular(); salvar(); desenharComanda(); desenharItens();
+  desenharItens();
+  abrirOpcoes({
+    base: sabor1 || sabor2,
+    itemId: "",
+    nome: `Pizza ${tamNome ? tamNome.n : tam} · ${nome1} / ${nome2}`,
+    preco: preco,
+    meio: true
+  });
   return true;
+}
+
+/* =========================================================
+   Escolhas do item: as mesmas do site
+
+   No site o cliente escolhe tamanho, borda, adicionais e, na Moda do
+   Freguês, os ingredientes. O balcão só tinha tamanho, então o
+   atendente ficava digitando na observação. Agora abre a mesma tela.
+
+   Bebida, caldo e qualquer item sem escolha continuam entrando com um
+   clique só, sem tela nenhuma no caminho.
+   ========================================================= */
+let opAberta = null;   // { base, itemId, nome, preco, meio, qtd }
+
+function bordasDo(base) {
+  const doce = base && base.g === "doces";
+  const lista = doce
+    ? (typeof BORDAS_DOCE !== "undefined" ? BORDAS_DOCE : [])
+    : (typeof BORDAS_SALGADA !== "undefined" ? BORDAS_SALGADA : []);
+  return lista;
+}
+
+function adicionaisDo(base) {
+  if (!base || !base.add) return [];
+  if (base.add === "lanche") return typeof ADD_LANCHE !== "undefined" ? ADD_LANCHE : [];
+  return typeof ADD_PIZZA !== "undefined" ? ADD_PIZZA : [];
+}
+
+/* item que não tem nenhuma escolha entra direto na comanda */
+function temEscolha(base) {
+  if (!base) return false;
+  return !!(base.pz || base.escolherIngredientes || adicionaisDo(base).length);
+}
+
+function abrirOpcoes(dados) {
+  opAberta = Object.assign({ qtd: 1 }, dados);
+  desenharOpcoes();
+  $("[data-opcoes]").hidden = false;
+}
+
+function fecharOpcoes() {
+  opAberta = null;
+  $("[data-opcoes]").hidden = true;
+}
+
+function desenharOpcoes() {
+  if (!opAberta) return;
+  const base = opAberta.base;
+  const bordas = opAberta.meio || (base && base.pz) ? bordasDo(base) : [];
+  const adicionais = adicionaisDo(base);
+  const quantos = base && base.escolherIngredientes;
+  const ingredientes = typeof INGREDIENTES_FREGUES !== "undefined" ? INGREDIENTES_FREGUES : [];
+
+  $("[data-op-nome]").textContent = opAberta.nome;
+  $("[data-op-base]").textContent = reais(opAberta.preco) + " o item";
+
+  let html = "";
+
+  if (quantos && ingredientes.length) {
+    html += `<div class="op-bloco">
+      <p class="op-titulo">Escolha ${quantos} ingredientes</p>
+      ${Array.from({ length: quantos }, (_, k) => `
+        <label class="op-escolha">Ingrediente ${k + 1}
+          <select data-op-ingrediente>
+            ${ingredientes.map(i => `<option>${escapa(i)}</option>`).join("")}
+          </select>
+        </label>`).join("")}
+    </div>`;
+  }
+
+  if (bordas.length) {
+    html += `<div class="op-bloco">
+      <p class="op-titulo">Borda</p>
+      <label class="op-escolha">
+        <select data-op-borda>
+          ${bordas.map(b =>
+            `<option value="${escapa(b.n)}" data-preco="${b.p}">${escapa(b.n)}${b.p ? " — mais " + reais(b.p) : ""}</option>`
+          ).join("")}
+        </select>
+      </label>
+    </div>`;
+  }
+
+  if (adicionais.length) {
+    html += `<div class="op-bloco">
+      <p class="op-titulo">Adicionais <small>(opcional)</small></p>
+      <div class="op-extras">
+        ${adicionais.map(a => `
+          <label class="op-extra">
+            <input type="checkbox" data-op-add value="${escapa(a.n)}" data-preco="${a.p}" />
+            <span>${escapa(a.n)}</span><b>mais ${reais(a.p)}</b>
+          </label>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  html += `<div class="op-bloco">
+    <p class="op-titulo">Observação deste item <small>(opcional)</small></p>
+    <input type="text" data-op-obs placeholder="Ex.: sem cebola, bem assada" />
+  </div>`;
+
+  $("[data-op-corpo]").innerHTML = html;
+  contaOpcoes();
+}
+
+/* quanto está custando com o que já foi marcado */
+function precoDasOpcoes() {
+  if (!opAberta) return 0;
+  const sel = $("[data-op-borda]");
+  const borda = sel ? Number(sel.selectedOptions[0].dataset.preco || 0) : 0;
+  const adds = $$("[data-op-add]:checked").reduce((t, c) => t + Number(c.dataset.preco || 0), 0);
+  return opAberta.preco + borda + adds;
+}
+
+function contaOpcoes() {
+  if (!opAberta) return;
+  $("[data-op-q]").textContent = opAberta.qtd;
+  $("[data-op-total]").textContent = reais(precoDasOpcoes() * opAberta.qtd);
+}
+
+function confirmarOpcoes() {
+  if (!opAberta) return;
+  const unit = precoDasOpcoes();
+
+  /* o que é descrição do item vai em "lanches", que a comanda imprime
+     com "›"; o que é adicional pago vai em "adds", impresso com "+" */
+  const detalhes = [];
+  const ing = $$("[data-op-ingrediente]").map(s => s.value);
+  if (ing.length) detalhes.push(ing.join(", "));
+  const sel = $("[data-op-borda]");
+  if (sel && !/^sem borda/i.test(sel.value)) detalhes.push("Borda: " + sel.value);
+
+  const adds = $$("[data-op-add]:checked").map(c => c.value);
+  const obs = ($("[data-op-obs]").value || "").trim();
+
+  comanda().pedido.itens.push({
+    ref: opAberta.meio ? "" : opAberta.itemId,
+    q: opAberta.qtd,
+    nome: opAberta.nome,
+    unit: unit,
+    total: unit * opAberta.qtd,
+    lanches: detalhes.join(" · "),
+    adds: adds.join(", "),
+    obs: obs
+  });
+
+  fecharOpcoes();
+  recalcular(); salvar(); desenharComanda(); desenharItens();
 }
 
 function adicionar(id) {
   if (tentarMeioAMeio(id)) return;
   const item = acharItem(id);
   if (!item) return;
+
+  /* pizza, ou item com adicionais, abre as escolhas antes de entrar */
+  const base = (typeof CARDAPIO !== "undefined" ? CARDAPIO : [])
+    .find(i => i.id === String(id).split("@")[0]);
+  if (temEscolha(base)) {
+    abrirOpcoes({ base: base, itemId: id, nome: item.n, preco: item.p, meio: false });
+    return;
+  }
+
   const p = comanda().pedido;
   const ja = p.itens.find(l => l.ref === id && !l.obs && !l.lanches);
   if (ja) ja.q += 1;
@@ -305,6 +466,8 @@ function desenharLinhas() {
         </div>
         <div class="cmd-nome">
           <span>${escapa(l.nome)}</span>
+          ${l.lanches ? `<i>${escapa(l.lanches)}</i>` : ""}
+          ${l.adds ? `<i>+ ${escapa(l.adds)}</i>` : ""}
           ${l.obs ? `<i>${escapa(l.obs)}</i>` : ""}
         </div>
         <b class="cmd-valor">${reais(l.total)}</b>
@@ -365,6 +528,8 @@ function pintarCampos() {
   $("[data-obs]").value = p.obs || "";
   $("[data-recebido]").value = c.recebido || "";
 
+  $("[data-mesa]").value = p.mesa || "";
+  $("[data-campo-mesa]").hidden = !noLocal;
   $("[data-campo-endereco]").hidden = !entrega;
   $("[data-campo-taxa]").hidden = !entrega;
   $("[data-campo-troco]").hidden = !/dinheiro/i.test(c.forma || "");
@@ -497,6 +662,31 @@ async function editarComanda(id) {
 }
 
 /* ========================= impressão ========================= */
+/* ========================= cliques da tela de escolhas ========================= */
+function ligarOpcoes() {
+  const caixa = $("[data-opcoes]");
+  if (!caixa) return;
+
+  caixa.addEventListener("click", ev => {
+    /* clicar no escuro em volta fecha, como o cliente espera */
+    if (ev.target === caixa || ev.target.closest("[data-op-cancelar]")) return fecharOpcoes();
+    if (ev.target.closest("[data-op-mais]")) { opAberta.qtd++; return contaOpcoes(); }
+    if (ev.target.closest("[data-op-menos]")) {
+      if (opAberta.qtd > 1) opAberta.qtd--;
+      return contaOpcoes();
+    }
+    if (ev.target.closest("[data-op-confirmar]")) return confirmarOpcoes();
+  });
+
+  caixa.addEventListener("change", ev => {
+    if (ev.target.matches("[data-op-borda], [data-op-add]")) contaOpcoes();
+  });
+
+  document.addEventListener("keydown", ev => {
+    if (ev.key === "Escape" && opAberta) fecharOpcoes();
+  });
+}
+
 function textoParaImprimir() {
   const sem = $("[data-semacento]") && $("[data-semacento]").checked;
   return comandaTexto(paraImpressao(), comanda().num, sem);
@@ -515,6 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
   desenharTudo();
   window.rbAoCarregarComandas = desenharHistoricoComandas;
   desenharHistoricoComandas();
+  ligarOpcoes();
 
   const semAcentoCx = $("[data-semacento]");
   if (semAcentoCx) {
@@ -646,6 +837,9 @@ document.addEventListener("DOMContentLoaded", () => {
   liga("[data-cliente]",  v => comanda().pedido.cliente = v);
   liga("[data-fone]",     v => comanda().pedido.fone = v);
   liga("[data-endereco]", v => comanda().pedido.endereco = v);
+  /* mesa digitada no balcão: é ela que junta as comandas da mesma mesa
+     no cartão com a soma, lá na aba Em aberto */
+  liga("[data-mesa]",     v => comanda().pedido.mesa = v ? Number(v) : null);
   liga("[data-obs]",      v => comanda().pedido.obs = v);
   liga("[data-recebido]", v => comanda().recebido = v);
 

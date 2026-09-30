@@ -188,6 +188,9 @@
             </div>
           </div>
 
+          <label class="campo" data-campo-mesa hidden><span>Número da mesa</span>
+            <input type="number" min="1" max="99" inputmode="numeric" data-mesa placeholder="Ex.: 5" /></label>
+
           <label class="campo" data-campo-endereco hidden><span>Endereço da entrega</span>
             <input type="text" data-endereco placeholder="Rua, número, bairro" /></label>
 
@@ -230,6 +233,35 @@
             <button type="button" data-ler>Transformar em comanda</button>
           </div>
         </details>
+      </div>
+
+      <!-- escolhas do item: tamanho já vem do botão, aqui entram borda,
+           adicionais, ingredientes à escolha, quantidade e observação -->
+      <div class="cmd-opcoes" data-opcoes hidden>
+        <div class="op-caixa" role="dialog" aria-modal="true" aria-label="Escolhas do item">
+          <header class="op-topo">
+            <div>
+              <strong data-op-nome></strong>
+              <span data-op-base></span>
+            </div>
+            <button type="button" class="op-fechar" data-op-cancelar aria-label="Fechar">✕</button>
+          </header>
+
+          <div class="op-corpo" data-op-corpo></div>
+
+          <footer class="op-pe">
+            <div class="op-qtd">
+              <button type="button" data-op-menos aria-label="Tirar um">−</button>
+              <b data-op-q>1</b>
+              <button type="button" data-op-mais aria-label="Pôr mais um">+</button>
+            </div>
+            <div class="op-total">
+              <span>Total do item</span>
+              <b data-op-total>R$ 0,00</b>
+            </div>
+            <button type="button" class="principal larga" data-op-confirmar>Pôr na comanda</button>
+          </footer>
+        </div>
       </div>
 
       <!-- a folha que vai para a impressora + histórico -->

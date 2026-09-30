@@ -62,8 +62,7 @@ function qdNumeros(d) {
   return [
     { n: valem.length + comandas.length, r: "Pedidos hoje" },
     { n: qdReais(vendido),               r: "Vendido hoje" },
-    { n: comandas.length,                r: "Vendas no balcão" },
-    { n: d.pedidos.filter(p => p.status === "saiu" && qdEhEntrega(p)).length, r: "Na rua agora" }
+    { n: comandas.length,                r: "Vendas no balcão" }
   ];
 }
 

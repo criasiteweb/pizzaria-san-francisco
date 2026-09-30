@@ -1,15 +1,52 @@
 /* =========================================================
-   Pizzaria Nonna Rosa — PAINEL DE PEDIDOS (painel.html)
+   Pizzaria San Francisco — PAINEL DE PEDIDOS (painel.html)
    Criasiteweb
-   Usa as cores e o topo definidos em comanda.css.
+
+   O painel usa a MESMA paleta clara do site da pizzaria (estilo.css):
+   fundo creme, cartão branco e o vermelho da marca. Os nomes das cores
+   vêm do comanda.css, que é escuro por padrão porque serve à comanda
+   impressa; aqui em cima trocamos só os valores, então todo o resto do
+   arquivo continua valendo sem uma linha mudada.
+
+   A folha da impressora (.papel) tem cor própria, branca, e não é
+   afetada por esta troca.
    ========================================================= */
+:root{
+  --preto:#FBF6EE;        /* fundo da página */
+  --carvao:#FFFFFF;       /* cartão */
+  --giz:#F4ECE0;          /* campo e botão discreto */
+  --giz-claro:#EADFCF;
+  --linha:rgba(70,35,15,.14);
+  --amarelo:#D42A20;      /* vermelho da marca */
+  --amarelo-forte:#E8493C;
+  --vermelho:#D42A20;
+  --verde:#1E8A54;
+  --texto:#2A1A12;
+  --texto-suave:rgba(42,26,18,.66);
+  --raio:16px; --raio-g:24px;
+
+  /* cores de aviso que antes eram claras porque o fundo era escuro */
+  --erro:#B3261E;
+  --erro-fundo:rgba(212,42,32,.10);
+  --erro-linha:rgba(212,42,32,.34);
+  --verde-fundo:rgba(30,138,84,.12);
+  --verde-linha:rgba(30,138,84,.34);
+  --laranja:#9A5B06;
+  --laranja-fundo:rgba(154,91,6,.13);
+  --azul:#1B63A8;
+  --sombra:0 14px 34px rgba(90,45,20,.14);
+  --sombra-g:0 20px 50px rgba(90,45,20,.18);
+}
+
+/* o topo do comanda.css é escuro por dentro: aqui ele acompanha a página */
+.topo{background:rgba(251,246,238,.92)}
 
 /* ---------- entrada ---------- */
 .login{min-height:100dvh;display:grid;place-items:center;padding:24px}
 .caixa-login{
   width:100%;max-width:380px;background:var(--carvao);border:1px solid var(--linha);
   border-radius:var(--raio-g);padding:32px 26px;text-align:center;
-  box-shadow:0 24px 60px rgba(0,0,0,.45);
+  box-shadow:var(--sombra-g);
 }
 .caixa-login img{margin:0 auto 14px;border-radius:50%}
 .caixa-login h1{font-size:26px;color:var(--amarelo);letter-spacing:.02em}
@@ -20,7 +57,7 @@
   width:100%;padding:14px 16px;font-size:17px;letter-spacing:.12em;
   background:var(--giz);color:var(--texto);border:1px solid var(--linha);border-radius:var(--raio);
 }
-.caixa-login .erro{min-height:20px;margin:12px 0 0;color:#FF8D82;font-size:14px}
+.caixa-login .erro{min-height:20px;margin:12px 0 0;color:var(--erro);font-size:14px}
 .caixa-login small{display:block;margin-top:14px;color:var(--texto-suave);font-size:12.5px}
 
 /* ---------- topo do painel ---------- */
@@ -38,10 +75,10 @@
 .loja-estado{
   flex:0 0 auto;padding:6px 12px;border-radius:9px;cursor:pointer;
   font:700 12px/1.2 "Inter",sans-serif;
-  background:rgba(47,169,107,.14);color:var(--verde);border:1px solid rgba(47,169,107,.45);
+  background:var(--verde-fundo);color:var(--verde);border:1px solid var(--verde-linha);
 }
 .loja-estado[data-fechada="true"]{
-  background:rgba(216,38,28,.16);color:#FF8D82;border-color:rgba(216,38,28,.5);
+  background:var(--erro-fundo);color:var(--erro);border-color:var(--erro-linha);
 }
 
 /* botões do topo: discretos, só o necessário */
@@ -54,8 +91,8 @@
 .topo .sair:hover{color:var(--texto);border-color:var(--texto-suave)}
 
 .conexao{font-size:12.5px;padding:5px 11px;border-radius:999px;white-space:nowrap}
-.conexao[data-ok="sim"]{color:var(--verde);background:rgba(47,169,107,.12)}
-.conexao[data-ok="nao"]{color:#FF8D82;background:rgba(216,38,28,.14)}
+.conexao[data-ok="sim"]{color:var(--verde);background:var(--verde-fundo)}
+.conexao[data-ok="nao"]{color:var(--erro);background:var(--erro-fundo)}
 
 /* ---------- barra de controles ---------- */
 .barra{
@@ -97,9 +134,9 @@
   border-left:5px solid var(--linha);
 }
 .pedido[data-status="novo"]{
-  border-left-color:var(--amarelo);box-shadow:0 0 0 1px rgba(212,42,32,.18),0 14px 34px rgba(0,0,0,.34);
+  border-left-color:var(--amarelo);box-shadow:0 0 0 1px rgba(212,42,32,.18),var(--sombra);
 }
-.pedido[data-status="preparando"]{border-left-color:#E08A1E}
+.pedido[data-status="preparando"]{border-left-color:var(--laranja)}
 .pedido[data-status="saiu"]{border-left-color:var(--verde)}
 .pedido[data-status="concluido"],.pedido[data-status="recusado"]{opacity:.55}
 
@@ -110,15 +147,15 @@
   padding:4px 9px;border-radius:999px;background:var(--giz-claro);color:var(--texto-suave);
 }
 .pedido .e-novo{background:var(--amarelo);color:#fff}
-.pedido .e-preparando{background:rgba(224,138,30,.2);color:#F0B463}
-.pedido .e-saiu{background:rgba(47,169,107,.18);color:#6BD3A0}
+.pedido .e-preparando{background:var(--laranja-fundo);color:var(--laranja)}
+.pedido .e-saiu{background:var(--verde-fundo);color:var(--verde)}
 .pedido .hora{margin-left:auto;font-size:12.5px;color:var(--texto-suave);white-space:nowrap}
 
 .pedido .quem{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pedido .quem strong{font-size:16.5px}
 .pedido .tipo{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--giz-claro)}
-.pedido .t-entrega{color:#8FC9FF}
-.pedido .t-retirada{color:#C9C3B4}
+.pedido .t-entrega{color:var(--azul)}
+.pedido .t-retirada{color:var(--texto-suave)}
 .pedido .fone{color:var(--verde);font-size:14px;text-decoration:none;font-weight:600}
 .pedido .fone:hover{text-decoration:underline}
 .pedido .endereco{margin:0;font-size:13.5px;color:var(--texto-suave);line-height:1.45}
@@ -135,7 +172,7 @@
   background:var(--giz);color:var(--texto);font:700 14px/1 "Inter",sans-serif;cursor:pointer;
 }
 .pedido .acoes .principal{background:var(--amarelo);color:#fff;border-color:var(--amarelo);flex:1 1 100%}
-.pedido .acoes .recusar{flex:0 0 auto;color:#FF8D82;background:transparent}
+.pedido .acoes .recusar{flex:0 0 auto;color:var(--erro);background:transparent}
 .pedido .acoes button:hover{filter:brightness(1.08)}
 
 /* ---------- rodapé ---------- */
@@ -178,11 +215,11 @@
   font-size:14px;color:var(--texto-suave);
 }
 .resumo b{color:var(--texto);font-size:17px;font-weight:800}
-.resumo .rec{color:#FF8D82}
+.resumo .rec{color:var(--erro)}
 .resumo .dia{margin-left:auto;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px}
 
 .pedido .acoes .reabrir{flex:1 1 100%;background:transparent;color:var(--amarelo);border-color:rgba(212,42,32,.4)}
-.pedido .acoes .avisar{flex:1 1 100%;background:rgba(47,169,107,.14);color:#6BD3A0;border-color:rgba(47,169,107,.35)}
+.pedido .acoes .avisar{flex:1 1 100%;background:var(--verde-fundo);color:var(--verde);border-color:var(--verde-linha)}
 .pedido .fone{color:var(--texto-suave);font-size:14px;font-weight:600}
 
 /* ---------- caixa e relatórios ---------- */
@@ -202,24 +239,24 @@
   text-transform:uppercase;color:var(--texto-suave);
 }
 .cx-linha{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:7px 0;font-size:14.5px}
-.cx-linha + .cx-linha{border-top:1px solid rgba(255,255,255,.05)}
+.cx-linha + .cx-linha{border-top:1px solid rgba(70,35,15,.09)}
 .cx-linha i{font-style:normal;font-size:12px;color:var(--texto-suave);margin-left:4px}
 .cx-linha b{font-weight:700;white-space:nowrap}
 .cx-linha.forte{font-weight:800}
 .cx-linha.forte b{color:var(--texto);font-size:17px}
-.cx-linha.menos b{color:#FF8D82}
+.cx-linha.menos b{color:var(--erro)}
 .cx-linha.lucro{margin-top:6px;padding-top:12px;border-top:2px solid var(--linha)}
 .cx-linha.lucro b{color:var(--verde);font-family:"Anton",Impact,sans-serif;font-size:24px;font-weight:400}
 .cx-nota{margin:12px 0 0;font-size:12.5px;color:var(--texto-suave);line-height:1.5}
 
 .cx-despesas{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
-.cx-despesas li{display:flex;align-items:center;gap:10px;font-size:14px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.cx-despesas li{display:flex;align-items:center;gap:10px;font-size:14px;padding:7px 0;border-bottom:1px solid rgba(70,35,15,.09)}
 .cx-despesas li span{flex:1;min-width:0;overflow-wrap:anywhere}
 .cx-despesas li b{white-space:nowrap}
 .cx-despesas li button{
   background:transparent;border:0;color:var(--texto-suave);cursor:pointer;font-size:15px;padding:2px 4px;
 }
-.cx-despesas li button:hover{color:#FF8D82}
+.cx-despesas li button:hover{color:var(--erro)}
 .cx-despesas .vazia{color:var(--texto-suave);border:0;justify-content:center}
 
 .cx-form{display:flex;gap:8px}
@@ -246,7 +283,7 @@
 .cx-relatorio{margin-top:26px;padding-top:22px;border-top:1px solid var(--linha)}
 .cx-relatorio h3{margin:0 0 16px;font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:20px;color:var(--amarelo);text-transform:capitalize}
 .cx-tabela{width:100%;margin-top:18px;border-collapse:collapse;font-size:14px}
-.cx-tabela th,.cx-tabela td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06)}
+.cx-tabela th,.cx-tabela td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(70,35,15,.10)}
 .cx-tabela th:first-child,.cx-tabela td:first-child{text-align:left}
 .cx-tabela th{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)}
 
@@ -287,7 +324,7 @@
   border:1px solid var(--linha);border-radius:10px;font-size:15px;
 }
 .balcao .marca{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--texto-suave)}
-.balcao .aviso{margin:10px 0 0;font-size:13.5px;color:#F0C95F}
+.balcao .aviso{margin:10px 0 0;font-size:13.5px;color:var(--laranja)}
 .balcao .area-papel{display:flex;justify-content:center}
 .balcao .lista-comandas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .balcao .lista-comandas button{
@@ -319,7 +356,7 @@
   font-weight: 800;
   border-top: 2px solid rgba(212,42,32,.4);
 }
-.cx-tabela tbody td b{ color: #EDEAE2; }
+.cx-tabela tbody td b{ color: var(--texto); }
 .cx-linha i{ opacity: .6; font-style: normal; font-size: .85em; }
 
 
@@ -335,7 +372,7 @@
 .btn-perigo{
   padding:9px 14px;border-radius:9px;cursor:pointer;
   font:700 12.5px/1.2 "Inter",sans-serif;
-  background:rgba(216,38,28,.14);color:#FF8D82;border:1px solid rgba(216,38,28,.5);
+  background:var(--erro-fundo);color:var(--erro);border:1px solid var(--erro-linha);
 }
 .btn-perigo:disabled{opacity:.5;cursor:default}
 .zona-status{color:var(--amarelo)!important}
@@ -411,7 +448,7 @@
   transition:background .15s ease,color .15s ease;
 }
 .ed-estoque.tem{background:rgba(47,169,107,.14);color:var(--verde);border:1px solid rgba(47,169,107,.45)}
-.ed-estoque.fora{background:rgba(216,38,28,.16);color:#FF8D82;border:1px solid rgba(216,38,28,.55)}
+.ed-estoque.fora{background:var(--erro-fundo);color:var(--erro);border:1px solid var(--erro-linha)}
 .ed-estoque:disabled{opacity:.6;cursor:default}
 
 /* ---------- faixas de aviso de funcionamento ---------- */
@@ -422,10 +459,10 @@
 }
 .faixa-alerta{background:var(--amarelo);color:#fff}
 .faixa-alerta b{font-weight:800;text-decoration:underline}
-.faixa-erro{background:rgba(216,38,28,.18);color:#FF8D82;cursor:default;
+.faixa-erro{background:var(--erro-fundo);color:var(--erro);cursor:default;
   border-top:1px solid rgba(216,38,28,.4);border-bottom:1px solid rgba(216,38,28,.4)}
 .faixa-erro button{padding:6px 12px;border-radius:8px;cursor:pointer;
-  font:700 12px/1.2 "Inter",sans-serif;background:#FF8D82;color:#2a0d0a;border:0}
+  font:700 12px/1.2 "Inter",sans-serif;background:var(--erro);color:#fff;border:0}
 
 /* =========================================================
    Quadro, Forno e Estoque
@@ -468,8 +505,8 @@
 .qd-hora{font-size:12px;color:var(--texto-suave)}
 .qd-quem{display:block;margin-top:6px;font-size:15px}
 .qd-tipo{display:inline-block;margin-top:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
-.qd-tipo.t-entrega{background:rgba(47,169,107,.14);color:var(--verde)}
-.qd-tipo.t-retirada{background:rgba(255,255,255,.07);color:var(--texto-suave)}
+.qd-tipo.t-entrega{background:var(--verde-fundo);color:var(--verde)}
+.qd-tipo.t-retirada{background:rgba(70,35,15,.07);color:var(--texto-suave)}
 .qd-itens{margin:8px 0 0;font-size:13.5px;color:var(--texto-suave);line-height:1.5}
 .qd-rodape{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
 .qd-total{font-weight:800;font-size:15.5px}
@@ -492,7 +529,7 @@
 .fo-cabeca{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .fo-num{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:26px;letter-spacing:.04em;color:var(--amarelo)}
 .fo-hora{font-size:13px;color:var(--texto-suave);margin-right:auto}
-.fo-tipo{padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.07);font-size:12px;font-weight:700}
+.fo-tipo{padding:4px 10px;border-radius:999px;background:rgba(70,35,15,.07);font-size:12px;font-weight:700}
 .fo-itens{margin:12px 0 0;font-size:18px;line-height:1.55}
 .fo-obs{margin:10px 0 0;font-size:15px;color:var(--amarelo-forte)}
 .fo-pronto{
@@ -509,10 +546,10 @@
 .est-status[data-sujo="true"]{color:var(--amarelo-forte);font-weight:700}
 
 .est-aviso{
-  background:rgba(216,38,28,.14);border:1px solid rgba(216,38,28,.4);color:#FF8D82;
+  background:var(--erro-fundo);border:1px solid var(--erro-linha);color:var(--erro);
   border-radius:var(--raio);padding:12px 14px;margin-bottom:16px;font-size:14px;line-height:1.5;
 }
-.est-aviso b{color:#fff}
+.est-aviso b{color:var(--erro)}
 
 .est-filtros{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .est-filtros input, .est-filtros select{
@@ -549,7 +586,7 @@
   font:700 12.5px/1.2 "Inter",sans-serif;
 }
 .est-marcar[aria-pressed="true"]{
-  border-color:rgba(216,38,28,.5);background:rgba(216,38,28,.16);color:#FF8D82;
+  border-color:var(--erro-linha);background:var(--erro-fundo);color:var(--erro);
 }
 .est-vazio{
   background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);
@@ -595,3 +632,60 @@
 /* a fila de abas é longa: numa tela pequena ela quebra em duas linhas
    em vez de esconder o fim atrás de uma rolagem lateral */
 .filtros{flex-wrap:wrap}
+
+/* =========================================================
+   Balcão, comanda e calendário do caixa no tema claro
+
+   O comanda.css pinta essa área escura na unha, com as cores
+   escritas direto na regra, porque ele serve também à comanda
+   impressa. Aqui trocamos só o que é cor, mantendo o mesmo
+   desenho. Como painel.css entra depois, estas regras valem.
+   ========================================================= */
+.cmd-cardapio, .cmd-pedido, .cmd-folha,
+.cx-calendario{
+  background:var(--carvao);border-color:var(--linha);
+}
+.cmd-hist{background:var(--giz);border-color:var(--linha)}
+
+/* campos de digitar: branco puro, para separar do cartão */
+.cmd-busca input, .cmd-campos input, .cmd-colar textarea{
+  background:#fff;color:var(--texto);border-color:var(--linha);
+}
+.cmd-busca input::placeholder,
+.cmd-campos input::placeholder,
+.cmd-colar textarea::placeholder{color:var(--texto-suave)}
+
+/* botões discretos */
+.cmd-aba,
+.cmd-grupos button,
+.cmd-mm,
+.cmd-qtd button,
+.cmd-obs, .cmd-tira,
+.cmd-tipos button, .cmd-pagto button,
+.cmd-botoes button,
+.cmd-colar .botoes button,
+.cmd-hist-acoes button,
+.cx-mes-abre,
+.cx-cal-ano button,
+.cx-cal-grade button{
+  background:var(--giz);color:var(--texto);border-color:var(--linha);
+}
+.cmd-avulso{background:transparent;color:var(--texto);border-color:var(--linha)}
+.cmd-aba.nova{background:transparent}
+.cmd-hist-baixo b{color:var(--texto)}
+
+/* avisos de valor */
+.cmd-tira,
+.cmd-total-linha.falta b,
+.cmd-botoes .cmd-fechar,
+.cmd-hist-acoes .cmd-tira-hist{color:var(--erro)}
+.cmd-botoes .cmd-fechar{border-color:var(--erro-linha)}
+.cmd-total-linha.troco b{color:var(--verde)}
+.cmd-total-linha.geral{border-top-color:var(--linha)}
+
+/* item do cardápio na lista de clicar */
+.cmd-item{background:var(--giz);color:var(--texto);border-color:var(--linha)}
+
+/* a folha da impressora é branca sobre fundo claro: a sombra pesada do
+   tema escuro virava uma mancha. Aqui ela fica só marcando o relevo. */
+.papel{box-shadow:var(--sombra)}

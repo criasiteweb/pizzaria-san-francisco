@@ -21,8 +21,41 @@ let mmAtivo = false;      // "meio a meio" ligado no balcão
 let mmPrimeiro = null;    // { ref, tam } do 1º sabor escolhido, esperando o 2º
 
 /* ========================= guardar e ler ========================= */
+/* ========================= o que o painel precisa saber =========================
+   A aba "Em aberto" mostra, lado a lado, os pedidos que vieram do site e as
+   comandas que estão abertas aqui no balcão e nas mesas. Quem guarda as
+   comandas é este arquivo, então é daqui que elas saem. */
+window.rbAbertas = function () {
+  return comandas
+    .filter(c => c.pedido.itens.length)
+    .map(c => ({
+      id: c.id,
+      num: c.num,
+      criada: c.criada || "",
+      tipo: c.pedido.tipo || "",
+      mesa: c.pedido.mesa || null,
+      cliente: c.pedido.cliente || "",
+      forma: c.forma || "",
+      itens: c.pedido.itens.map(i => ({ q: i.q, nome: i.nome })),
+      subtotal: Number(c.pedido.subtotal) || 0
+    }));
+};
+
+/* abrir uma comanda pelo id, vindo de um clique na aba "Em aberto" */
+window.rbAbrirComanda = function (id) {
+  const i = comandas.findIndex(c => c.id === id);
+  if (i < 0) return false;
+  atual = i;
+  salvar();
+  desenharComanda();
+  return true;
+};
+
 function salvar() {
   const texto = JSON.stringify({ comandas, atual });
+  /* a aba "Em aberto" mostra as comandas junto dos pedidos do site:
+     toda vez que elas mudam, ela precisa se redesenhar */
+  if (window.rbAoMudarComandas) window.rbAoMudarComandas();
   if (window.guardarComSeguranca) { window.guardarComSeguranca(CHAVE_COMANDAS, texto); return; }
   try { localStorage.setItem(CHAVE_COMANDAS, texto); }
   catch (e) { /* aparelho sem espaço: segue só na memória desta sessão */ }

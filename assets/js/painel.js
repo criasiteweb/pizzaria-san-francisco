@@ -446,6 +446,109 @@ function cartaoBalcao(v) {
   </article>`;
 }
 
+/* =========================================================
+   "Em aberto" em duas partes
+
+   De um lado o que chegou do site (entrega e retirada), do outro o que
+   está sendo atendido aqui dentro (balcão e mesa). São dois trabalhos
+   diferentes: o de cima cobra atenção agora, o de baixo é conta aberta.
+
+   Mesa: cada rodada de pedido entra na comanda daquela mesa. Se a mesma
+   mesa acabar com mais de uma comanda aberta, elas aparecem juntas num
+   cartão só, com a SOMA de tudo. Quem fecha o pagamento é a loja, no
+   Balcão, quando a mesa pedir a conta.
+   ========================================================= */
+function tituloDaLista(texto, quantidade, ajuda) {
+  return `
+  <div class="lista-titulo">
+    <h2>${esc(texto)} <b>${quantidade}</b></h2>
+    ${ajuda ? `<p>${esc(ajuda)}</p>` : ""}
+  </div>`;
+}
+
+function itensDaComanda(lista) {
+  return (lista || []).map(i => `${i.q}x ${esc(i.nome)}`).join(" · ");
+}
+
+/* uma comanda de balcão, ou uma comanda avulsa de mesa */
+function cartaoComanda(c) {
+  const mesa = c.tipo === "No restaurante" && c.mesa;
+  return `
+  <article class="comanda-aberta" data-comanda="${esc(c.id)}">
+    <header>
+      <span class="num">${mesa ? "Mesa " + esc(c.mesa) : "#" + esc(c.num)}</span>
+      <span class="etapa e-comanda">${mesa ? "No restaurante" : "Balcão"}</span>
+      <span class="hora">${esc(c.criada)}</span>
+    </header>
+    ${c.cliente ? `<strong class="quem">${esc(c.cliente)}</strong>` : ""}
+    <p class="itens">${itensDaComanda(c.itens)}</p>
+    <div class="rodape">
+      <span class="total">${reais(c.subtotal)}</span>
+      <span class="aberta">conta aberta</span>
+    </div>
+    <div class="acoes">
+      <button type="button" class="principal" data-abrir-comanda="${esc(c.id)}">Abrir no balcão</button>
+    </div>
+  </article>`;
+}
+
+/* a mesma mesa com mais de uma comanda aberta: um cartão só, somando */
+function cartaoMesa(numero, lista) {
+  const soma = lista.reduce((t, c) => t + (Number(c.subtotal) || 0), 0);
+  const cliente = (lista.find(c => c.cliente) || {}).cliente || "";
+  return `
+  <article class="comanda-aberta mesa-junta" data-comanda="${esc(lista[0].id)}">
+    <header>
+      <span class="num">Mesa ${esc(numero)}</span>
+      <span class="etapa e-comanda">${lista.length} comandas</span>
+      <span class="hora">${esc(lista[0].criada)}</span>
+    </header>
+    ${cliente ? `<strong class="quem">${esc(cliente)}</strong>` : ""}
+    <div class="rodadas">
+      ${lista.map((c, i) => `
+        <div class="rodada">
+          <span>${i + 1}ª rodada${c.criada ? " · " + esc(c.criada) : ""}</span>
+          <b>${reais(c.subtotal)}</b>
+          <p>${itensDaComanda(c.itens)}</p>
+        </div>`).join("")}
+    </div>
+    <div class="rodape">
+      <span class="total">${reais(soma)}</span>
+      <span class="aberta">total da mesa</span>
+    </div>
+    <div class="acoes">
+      ${lista.map((c, i) => `
+        <button type="button" data-abrir-comanda="${esc(c.id)}">Abrir a ${i + 1}ª</button>`).join("")}
+    </div>
+  </article>`;
+}
+
+function blocoComandasAbertas() {
+  const abertas = window.rbAbertas ? window.rbAbertas() : [];
+  if (!abertas.length) return "";
+
+  /* junta por mesa; o que não é mesa fica solto */
+  const porMesa = {};
+  const soltas = [];
+  abertas.forEach(c => {
+    if (c.tipo === "No restaurante" && c.mesa) {
+      (porMesa[c.mesa] = porMesa[c.mesa] || []).push(c);
+    } else {
+      soltas.push(c);
+    }
+  });
+
+  const cartoes = Object.keys(porMesa)
+    .sort((a, b) => Number(a) - Number(b))
+    .map(m => porMesa[m].length > 1 ? cartaoMesa(m, porMesa[m]) : cartaoComanda(porMesa[m][0]))
+    .concat(soltas.map(cartaoComanda));
+
+  const total = abertas.reduce((t, c) => t + (Number(c.subtotal) || 0), 0);
+  return tituloDaLista("Balcão e mesa", cartoes.length,
+    "Conta aberta aqui dentro, " + reais(total) + " no total. Fecha no Balcão, quando o cliente pedir a conta.")
+    + cartoes.join("");
+}
+
 function desenhar() {
   const lista = el("[data-lista]");
   const noCaixa  = filtro === "caixa";
@@ -511,13 +614,26 @@ function desenhar() {
 
   resumoDoDia();
 
+  if (filtro === "abertos") {
+    const comandas = blocoComandasAbertas();
+    if (!visiveis.length && !comandas) {
+      lista.innerHTML = `<p class="vazio">Nenhum pedido em aberto. Quando chegar um novo, o computador vai apitar.</p>`;
+      return;
+    }
+    lista.innerHTML =
+      (visiveis.length
+        ? tituloDaLista("Pedidos do site", visiveis.length, "Entrega e retirada. Chegaram pelo site e esperam resposta.")
+          + visiveis.map(cartao).join("")
+        : tituloDaLista("Pedidos do site", 0, "Nenhum pedido do site em aberto agora."))
+      + comandas;
+    return;
+  }
+
   if (!visiveis.length) {
     lista.innerHTML =
-      filtro === "abertos"
-        ? `<p class="vazio">Nenhum pedido em aberto. Quando chegar um novo, o computador vai apitar.</p>`
-        : filtro === "historico"
-          ? `<p class="vazio">Nenhum pedido em ${formatarData(dataHistorico)}.</p>`
-          : `<p class="vazio">Nenhum pedido hoje ainda.</p>`;
+      filtro === "historico"
+        ? `<p class="vazio">Nenhum pedido em ${formatarData(dataHistorico)}.</p>`
+        : `<p class="vazio">Nenhum pedido hoje ainda.</p>`;
     return;
   }
   lista.innerHTML = visiveis.map(cartao).join("");
@@ -1012,6 +1128,23 @@ function imprimir(p) {
   updateDoc(doc(db, "pedidos", p.id), { impresso: true }).catch(() => {});
   if (p.status === "novo") { mudarStatus(p.id, "preparando"); pararInsistencia(); }
 }
+
+/* clique em "Abrir no balcão" na aba Em aberto: pula pro Balcão já com
+   aquela comanda escolhida, que é onde a conta se fecha */
+el("[data-lista]").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-abrir-comanda]");
+  if (!b) return;
+  if (window.rbAbrirComanda && window.rbAbrirComanda(b.dataset.abrirComanda)) {
+    filtro = "balcao";
+    desenhar();
+    window.scrollTo(0, 0);
+  }
+});
+
+/* o balcão avisa quando uma comanda muda, para a aba Em aberto acompanhar */
+window.rbAoMudarComandas = function () {
+  if (filtro === "abertos" || filtro === "quadro") desenhar();
+};
 
 /* ========================= controles de cima ========================= */
 els("[data-filtro]").forEach(b => b.addEventListener("click", () => {

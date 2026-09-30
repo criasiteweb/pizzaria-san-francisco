@@ -74,6 +74,14 @@ service cloud.firestore {
       allow write: if ehALoja();
     }
 
+    /* Estoque do painel: quantidade, aviso de fim e código de barras.
+       O site precisa LER para não vender bebida que acabou, então a
+       leitura é livre. Só a loja escreve. */
+    match /publico/estoque {
+      allow read: if true;
+      allow write: if ehALoja();
+    }
+
     /* Pedido feito pela mesa (restaurante.html). Cada documento é uma
        rodada de pedido daquela mesa, que o painel importa pra dentro da
        comanda e marca como "importado". Sem dado pessoal obrigatório. */

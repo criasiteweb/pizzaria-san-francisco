@@ -426,3 +426,171 @@
   border-top:1px solid rgba(216,38,28,.4);border-bottom:1px solid rgba(216,38,28,.4)}
 .faixa-erro button{padding:6px 12px;border-radius:8px;cursor:pointer;
   font:700 12px/1.2 "Inter",sans-serif;background:#FF8D82;color:#2a0d0a;border:0}
+
+/* =========================================================
+   Quadro, Forno, Entrega e Estoque
+   Mesmo desenho do portal do Mercado Já, nas cores da pizzaria.
+   ========================================================= */
+
+.quadro, .forno, .entrega, .estoque{padding:18px 16px 40px;max-width:1500px;margin:0 auto}
+
+.qd-titulo h2{margin:0;font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:24px;letter-spacing:.03em}
+.qd-titulo p{margin:6px 0 18px;color:var(--texto-suave);font-size:14.5px;max-width:70ch;line-height:1.55}
+
+/* ---------- os números do dia ---------- */
+.qd-numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:20px}
+.qd-numero{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);padding:16px 18px;
+}
+.qd-numero b{display:block;font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:28px;letter-spacing:.02em;color:var(--texto)}
+.qd-numero span{display:block;margin-top:4px;font-size:13px;color:var(--texto-suave)}
+
+/* ---------- as quatro colunas ---------- */
+.qd-colunas{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px;align-items:start}
+.qd-coluna{background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);padding:14px}
+.qd-coluna > header{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--linha);
+}
+.qd-coluna > header span{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--texto-suave)}
+.qd-coluna > header b{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:19px}
+.qd-coluna[data-coluna="novo"] > header span{color:var(--amarelo-forte)}
+.qd-coluna[data-coluna="saiu"] > header span{color:var(--verde)}
+.qd-pilha{display:grid;gap:10px}
+.qd-vazio{margin:8px 0;color:var(--texto-suave);font-size:14px;text-align:center;padding:18px 6px}
+
+.qd-cartao{background:var(--giz);border:1px solid var(--linha);border-radius:var(--raio);padding:12px 13px}
+.qd-cartao[data-status="novo"]{border-left:4px solid var(--amarelo)}
+.qd-cartao[data-status="preparando"]{border-left:4px solid var(--amarelo-forte)}
+.qd-cartao[data-status="saiu"]{border-left:4px solid var(--verde)}
+.qd-cartao > header{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.qd-num{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:18px;letter-spacing:.04em;color:var(--amarelo)}
+.qd-hora{font-size:12px;color:var(--texto-suave)}
+.qd-quem{display:block;margin-top:6px;font-size:15px}
+.qd-tipo{display:inline-block;margin-top:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
+.qd-tipo.t-entrega{background:rgba(47,169,107,.14);color:var(--verde)}
+.qd-tipo.t-retirada{background:rgba(255,255,255,.07);color:var(--texto-suave)}
+.qd-itens{margin:8px 0 0;font-size:13.5px;color:var(--texto-suave);line-height:1.5}
+.qd-rodape{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.qd-total{font-weight:800;font-size:15.5px}
+.qd-rodape button{
+  padding:8px 12px;border-radius:10px;border:1px solid var(--linha);
+  background:var(--giz-claro);color:var(--texto);font:700 12.5px/1.2 "Inter",sans-serif;cursor:pointer;
+}
+.qd-rodape button:hover{border-color:var(--texto-suave)}
+
+.qd-vazio-grande{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);
+  padding:44px 22px;text-align:center;color:var(--texto-suave);font-size:15px;line-height:1.6;
+}
+.qd-vazio-grande b{display:block;color:var(--texto);font-size:19px;margin-bottom:6px}
+
+/* ---------- forno: letra grande, tela da cozinha ---------- */
+.fo-lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.fo-item{background:var(--carvao);border:1px solid var(--linha);border-left:5px solid var(--amarelo);
+  border-radius:var(--raio-g);padding:18px}
+.fo-cabeca{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fo-num{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:26px;letter-spacing:.04em;color:var(--amarelo)}
+.fo-hora{font-size:13px;color:var(--texto-suave);margin-right:auto}
+.fo-tipo{padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.07);font-size:12px;font-weight:700}
+.fo-itens{margin:12px 0 0;font-size:18px;line-height:1.55}
+.fo-obs{margin:10px 0 0;font-size:15px;color:var(--amarelo-forte)}
+.fo-pronto{
+  width:100%;margin-top:16px;padding:14px;border-radius:12px;border:none;cursor:pointer;
+  background:var(--verde);color:#fff;font:800 16px/1.2 "Inter",sans-serif;
+}
+
+/* ---------- entrega ---------- */
+.en-lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.en-item{background:var(--carvao);border:1px solid var(--linha);border-left:5px solid var(--verde);
+  border-radius:var(--raio-g);padding:16px}
+.en-cabeca{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.en-num{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:20px;color:var(--amarelo)}
+.en-cabeca strong{font-size:15.5px;margin-right:auto}
+.en-hora{font-size:12.5px;color:var(--texto-suave)}
+.en-endereco{margin:10px 0 0;font-size:15px;line-height:1.5}
+.en-fone{margin:4px 0 0;font-size:14px;color:var(--texto-suave)}
+.en-pagto{margin:8px 0 0;font-size:14px;color:var(--texto-suave)}
+.en-rodape{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.en-total{font-weight:800;font-size:17px}
+.en-rodape button{
+  flex:0 0 auto;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--verde);color:#fff;font:700 13.5px/1.2 "Inter",sans-serif;
+}
+
+/* ---------- estoque ---------- */
+.est-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.est-topo h2{margin:0;font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:24px;letter-spacing:.03em}
+.est-ajuda{margin:6px 0 0;color:var(--texto-suave);font-size:14px;max-width:72ch;line-height:1.55}
+.est-acoes{display:flex;align-items:center;gap:12px}
+.est-status{font-size:13px;color:var(--texto-suave)}
+.est-status[data-sujo="true"]{color:var(--amarelo-forte);font-weight:700}
+
+.est-aviso{
+  background:rgba(216,38,28,.14);border:1px solid rgba(216,38,28,.4);color:#FF8D82;
+  border-radius:var(--raio);padding:12px 14px;margin-bottom:16px;font-size:14px;line-height:1.5;
+}
+.est-aviso b{color:#fff}
+
+.est-filtros{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.est-filtros input, .est-filtros select{
+  padding:11px 13px;background:var(--giz);color:var(--texto);
+  border:1px solid var(--linha);border-radius:var(--raio);font-size:15px;
+}
+.est-filtros input{flex:1 1 280px}
+
+.est-grupos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.est-grupos button{
+  padding:7px 13px;border-radius:9px;border:1px solid var(--linha);
+  background:var(--giz);color:var(--texto-suave);font:600 12.5px/1.2 "Inter",sans-serif;cursor:pointer;
+}
+.est-grupos button[aria-pressed="true"]{background:var(--amarelo);color:#fff;border-color:var(--amarelo)}
+
+.est-lista{display:grid;gap:10px}
+.est-linha{
+  display:grid;gap:12px;align-items:end;
+  grid-template-columns:minmax(220px,2.2fr) 110px 110px 170px 128px;
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio);padding:13px 14px;
+}
+.est-linha.no-fim{border-color:rgba(216,38,28,.45);background:rgba(216,38,28,.07)}
+.est-nome{font-size:15px;line-height:1.35}
+.est-cat{display:block;margin-top:4px;font-size:12.5px;color:var(--texto-suave)}
+.est-campo{display:block}
+.est-campo span{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave);margin-bottom:5px}
+.est-campo input{
+  width:100%;padding:10px 11px;background:var(--giz);color:var(--texto);
+  border:1px solid var(--linha);border-radius:10px;font-size:15px;
+}
+.est-marcar{
+  padding:11px 10px;border-radius:10px;cursor:pointer;
+  border:1px solid rgba(47,169,107,.45);background:rgba(47,169,107,.14);color:var(--verde);
+  font:700 12.5px/1.2 "Inter",sans-serif;
+}
+.est-marcar[aria-pressed="true"]{
+  border-color:rgba(216,38,28,.5);background:rgba(216,38,28,.16);color:#FF8D82;
+}
+.est-vazio{
+  background:var(--carvao);border:1px solid var(--linha);border-radius:var(--raio-g);
+  padding:40px 20px;text-align:center;color:var(--texto-suave);font-size:15px;
+}
+.est-vazio b{display:block;color:var(--texto);font-size:18px;margin-bottom:6px}
+.est-ajuda, .est-lista .est-ajuda{margin-top:12px}
+
+/* ---------- telas menores: nada de rolar de lado ---------- */
+@media (max-width:1000px){
+  .est-linha{grid-template-columns:1fr 1fr;grid-template-areas:"nome nome" "q min" "cod cod" "marcar marcar"}
+  .est-nome{grid-area:nome}
+  .est-linha .est-campo:nth-of-type(1){grid-area:q}
+  .est-linha .est-campo:nth-of-type(2){grid-area:min}
+  .est-campo-cod{grid-area:cod}
+  .est-marcar{grid-area:marcar}
+}
+@media (max-width:760px){
+  .quadro, .forno, .entrega, .estoque{padding:14px 12px 32px}
+  .est-topo{flex-direction:column}
+  .fo-itens{font-size:16px}
+}
+
+/* a fila de abas é longa: numa tela pequena ela quebra em duas linhas
+   em vez de esconder o fim atrás de uma rolagem lateral */
+.filtros{flex-wrap:wrap}

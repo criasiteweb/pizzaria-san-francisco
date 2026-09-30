@@ -396,6 +396,9 @@ async function fecharComanda() {
     try { await window.rbComandas.gravar(venda); }
     catch (e) { return avisar("Não consegui salvar no caixa. Verifique a internet e tente de novo.", true); }
   }
+  /* o que tem controle de estoque (bebida, cerveja, água) baixa sozinho.
+     Pizza e caldo são feitos na hora, então passam sem mexer em nada. */
+  if (window.estBaixar) { try { window.estBaixar(venda.itens); } catch (e) {} }
   descartar();
   desenharHistoricoComandas();
   avisar(`Comanda #${venda.numero} fechada — ${reais(venda.total)} em ${venda.forma}. Já entrou no caixa.`, false);

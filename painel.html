@@ -61,8 +61,12 @@
 
   <div class="barra">
     <div class="filtros">
+      <button type="button" data-filtro="quadro" aria-pressed="false">Quadro</button>
       <button type="button" data-filtro="abertos" aria-pressed="true">Em aberto</button>
+      <button type="button" data-filtro="forno" aria-pressed="false">Forno</button>
+      <button type="button" data-filtro="entrega" aria-pressed="false">Entrega</button>
       <button type="button" data-filtro="balcao" aria-pressed="false">Balcão</button>
+      <button type="button" data-filtro="estoque" aria-pressed="false">Estoque</button>
       <button type="button" data-filtro="todos" aria-pressed="false">Todos de hoje</button>
       <button type="button" data-filtro="historico" aria-pressed="false" data-so-privado hidden>Histórico</button>
       <button type="button" data-filtro="caixa" aria-pressed="false" data-so-privado hidden>Caixa</button>
@@ -88,6 +92,45 @@
   </div>
 
   <div class="resumo" data-resumo hidden></div>
+
+  <!-- ============ quadro: o pedido andando pelas quatro colunas ============ -->
+  <section class="quadro" data-quadro hidden></section>
+
+  <!-- ============ forno: a tela da cozinha ============ -->
+  <section class="forno" data-forno hidden></section>
+
+  <!-- ============ entrega: quem está na rua ============ -->
+  <section class="entrega" data-entrega hidden></section>
+
+  <!-- ============ estoque ============ -->
+  <section class="estoque" data-estoque hidden>
+    <div class="est-topo">
+      <div>
+        <h2>Estoque</h2>
+        <p class="est-ajuda">Quantidade, aviso de fim e código de barras. Quem não tiver quantidade
+           fica sem controle, que é o caso das pizzas. Bebida e cerveja baixam sozinhas a cada
+           comanda fechada no balcão, e o que zera some do site na hora.</p>
+      </div>
+      <div class="est-acoes">
+        <span class="est-status" data-est-status></span>
+        <button type="button" class="principal" data-est-salvar>Salvar estoque</button>
+      </div>
+    </div>
+
+    <div class="est-aviso" data-est-aviso hidden></div>
+
+    <div class="est-filtros">
+      <input type="search" data-est-busca placeholder="Procurar item ou bipar o código…" />
+      <select data-est-so>
+        <option value="">Tudo</option>
+        <option value="controlado">Só o que tem controle</option>
+        <option value="falta">No fim ou acabou</option>
+      </select>
+    </div>
+
+    <div class="est-grupos" data-est-grupos></div>
+    <div class="est-lista" data-est-lista></div>
+  </section>
 
   <section class="caixa" data-caixa hidden></section>
 
@@ -230,7 +273,7 @@
 <script>
 (function(){
   var t = Math.floor(Date.now() / 120000);
-  ["comanda-core", "caixa", "cardapio", "balcao", "editor"].forEach(function(a){
+  ["comanda-core", "caixa", "cardapio", "balcao", "editor", "estoque", "quadro"].forEach(function(a){
     document.write('<script src="assets/js/' + a + '.js?t=' + t + '"><\/script>');
   });
   document.write('<script type="module" src="assets/js/painel.js?t=' + t + '"><\/script>');

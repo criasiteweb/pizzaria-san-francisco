@@ -50,7 +50,9 @@ const TAXA_MEIO_A_MEIO_BROTO = 0;
 const GRUPOS = [
   { id: "salgadas", rotulo: "Salgadas", titulo: "Pizzas salgadas", nota: "86 sabores, do 01 ao 86. Do 74 ao 86 são as especiais, feitas com catupiry original. Toque num sabor pra escolher o tamanho e, se quiser, fazer meio a meio. Borda de catupiry Top Milk grátis." },
   { id: "doces",    rotulo: "Doces",    titulo: "Pizzas doces",    nota: "16 sabores. Meio a meio vale com outro doce ou com um salgado." },
-  { id: "caldos",   rotulo: "Caldos",   titulo: "Caldos",          nota: "Pote de 440 ml. Verifique os sabores disponíveis do dia." }
+  { id: "caldos",   rotulo: "Caldos",   titulo: "Caldos",          nota: "Pote de 440 ml. Verifique os sabores disponíveis do dia." },
+  /* [CONFIRMAR com o dono: marcas, tamanhos e precos das bebidas] */
+  { id: "bebidas",  rotulo: "Bebidas",  titulo: "Bebidas",         nota: "Refrigerante, suco, água e cerveja. Tudo gelado." }
 ];
 
 /* Nome do item no pedido e na comanda. Pastel e porção têm sabores com o
@@ -180,6 +182,27 @@ const CARDAPIO = [
   { id:"c4", g:"caldos", n:"4 Queijos", d:"Mix de queijos. 440 ml", p:40.00, f:"sem-foto" },
   { id:"c5", g:"caldos", n:"Caldo de Quenga", d:"Caldo de mandioca batida, peito de frango desfiado e milho. 440 ml", p:40.00, f:"sem-foto" },
   { id:"c6", g:"caldos", n:"Vaca Atolada", d:"Caldo de mandioca com carne. 440 ml", p:40.00, f:"sem-foto" },
+
+  /* ---- bebidas ---- [CONFIRMAR precos, marcas e tamanhos com o dono]
+     Entram no estoque do painel por unidade: o balcao baixa sozinho. */
+  { id:"b1",  g:"bebidas", n:"Coca-Cola 2 litros",            d:"Garrafa 2 L gelada.",            p:15.00, f:"sem-foto" },
+  { id:"b2",  g:"bebidas", n:"Coca-Cola 1,5 litro",           d:"Garrafa 1,5 L gelada.",          p:12.00, f:"sem-foto" },
+  { id:"b3",  g:"bebidas", n:"Coca-Cola lata 350 ml",         d:"Lata gelada.",                   p:7.00,  f:"sem-foto" },
+  { id:"b4",  g:"bebidas", n:"Coca-Cola Zero 2 litros",       d:"Garrafa 2 L gelada.",            p:15.00, f:"sem-foto" },
+  { id:"b5",  g:"bebidas", n:"Guaraná Antarctica 2 litros",   d:"Garrafa 2 L gelada.",            p:13.00, f:"sem-foto" },
+  { id:"b6",  g:"bebidas", n:"Guaraná Antarctica lata 350 ml",d:"Lata gelada.",                   p:6.50,  f:"sem-foto" },
+  { id:"b7",  g:"bebidas", n:"Fanta Laranja 2 litros",        d:"Garrafa 2 L gelada.",            p:13.00, f:"sem-foto" },
+  { id:"b8",  g:"bebidas", n:"Fanta Uva 2 litros",            d:"Garrafa 2 L gelada.",            p:13.00, f:"sem-foto" },
+  { id:"b9",  g:"bebidas", n:"Sprite 2 litros",               d:"Garrafa 2 L gelada.",            p:13.00, f:"sem-foto" },
+  { id:"b10", g:"bebidas", n:"Água mineral sem gás 500 ml",   d:"Garrafa gelada.",                p:4.00,  f:"sem-foto" },
+  { id:"b11", g:"bebidas", n:"Água mineral com gás 500 ml",   d:"Garrafa gelada.",                p:4.50,  f:"sem-foto" },
+  { id:"b12", g:"bebidas", n:"Suco Del Valle laranja 290 ml", d:"Lata gelada.",                   p:7.00,  f:"sem-foto" },
+  { id:"b13", g:"bebidas", n:"Suco Del Valle uva 290 ml",     d:"Lata gelada.",                   p:7.00,  f:"sem-foto" },
+  { id:"b14", g:"bebidas", n:"H2OH! limão 500 ml",            d:"Garrafa gelada.",                p:7.50,  f:"sem-foto" },
+  { id:"b15", g:"bebidas", n:"Cerveja Skol lata 350 ml",      d:"Lata gelada.",                   p:8.00,  f:"sem-foto" },
+  { id:"b16", g:"bebidas", n:"Cerveja Brahma lata 350 ml",    d:"Lata gelada.",                   p:8.00,  f:"sem-foto" },
+  { id:"b17", g:"bebidas", n:"Cerveja Heineken long neck",    d:"Garrafa 330 ml gelada.",         p:13.00, f:"sem-foto" },
+  { id:"b18", g:"bebidas", n:"Cerveja Original 600 ml",       d:"Garrafa gelada.",                p:16.00, f:"sem-foto" },
 ];
 
 /* ---- cupons ---- (nenhum no modelo) */

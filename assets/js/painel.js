@@ -196,6 +196,7 @@ onAuthStateChanged(auth, usuario => {
     escutarPedidosDaMesa();
     lerEstadoLoja();
     carregarAjustesCardapio();
+    carregarEstoque();
     carregarCaixa(hojeISO()).then(() => {
       if (window.rbAoCarregarComandas) window.rbAoCarregarComandas();
     });
@@ -429,12 +430,35 @@ function desenhar() {
   const noCaixa  = filtro === "caixa";
   const noBalcao = filtro === "balcao";
   const noEditor = filtro === "cardapio";
+  const noQuadro  = filtro === "quadro";
+  const noForno   = filtro === "forno";
+  const noEntrega = filtro === "entrega";
+  const noEstoque = filtro === "estoque";
+  const telaPropria = noCaixa || noBalcao || noEditor || noQuadro || noForno || noEntrega || noEstoque;
+
   el("[data-caixa]").hidden  = !noCaixa;
   el("[data-balcao]").hidden = !noBalcao;
   el("[data-editor]").hidden = !noEditor;
+  el("[data-quadro]").hidden  = !noQuadro;
+  el("[data-forno]").hidden   = !noForno;
+  el("[data-entrega]").hidden = !noEntrega;
+  el("[data-estoque]").hidden = !noEstoque;
   document.body.classList.toggle("ver-papel", noBalcao);
-  lista.hidden = noCaixa || noBalcao || noEditor;
-  el("[data-resumo]").hidden = noCaixa || noBalcao || noEditor || !(pedidos.length || (caixaDoDia.comandas || []).length);
+  lista.hidden = telaPropria;
+  el("[data-resumo]").hidden = telaPropria || !(pedidos.length || (caixaDoDia.comandas || []).length);
+
+  /* Quadro, Forno, Entrega e Estoque são as telas no padrão do portal:
+     todas leem os mesmos pedidos, então é só mandar redesenhar. */
+  if (noQuadro || noForno || noEntrega || noEstoque) {
+    els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
+    el("[data-caixa-data]").hidden = true;
+    el("[data-contador]").textContent = pedidos.filter(p => p.status === "novo").length || "";
+    if (noQuadro  && window.qdDesenharQuadro)  window.qdDesenharQuadro();
+    if (noForno   && window.qdDesenharForno)   window.qdDesenharForno();
+    if (noEntrega && window.qdDesenharEntrega) window.qdDesenharEntrega();
+    if (noEstoque && window.estDesenhar)       window.estDesenhar();
+    return;
+  }
 
   if (noEditor) {
     els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
@@ -971,7 +995,12 @@ function imprimir(p) {
 /* ========================= controles de cima ========================= */
 els("[data-filtro]").forEach(b => b.addEventListener("click", () => {
   filtro = b.dataset.filtro;
-  if (filtro === "balcao" || filtro === "cardapio") { desenhar(); return; }
+  if (["balcao", "cardapio", "quadro", "forno", "entrega", "estoque"].includes(filtro)) {
+    /* essas telas são sempre do dia de hoje, ao vivo */
+    if (dataHistorico) { dataHistorico = null; escutarPedidos(); }
+    desenhar();
+    return;
+  }
   if (filtro === "caixa") {
     const campo = el("[data-data]");
     const hoje = hojeISO();
@@ -1083,6 +1112,54 @@ async function carregarAjustesCardapio() {
   } catch (e) { /* sem acesso: o cardápio do arquivo continua valendo */ }
   if (typeof edDesenhar === "function") edDesenhar();
 }
+
+/* =========================================================
+   Ponte com as telas do portal (quadro.js e estoque.js)
+
+   Elas não falam com o servidor: só desenham. Tudo que precisam
+   sai daqui, então existe um lugar só que sabe buscar pedido.
+   ========================================================= */
+window.qdDados = () => ({ pedidos: pedidos, comandas: caixaDoDia.comandas || [] });
+window.qdResumoItens = resumoItens;
+window.qdTempoDesde = tempoDesde;
+window.reais = reais;
+window.qdAvancar = function (id) {
+  const p = achar(id);
+  if (!p) return;
+  const proxima = { novo: "preparando", preparando: "saiu", saiu: "concluido" }[p.status];
+  if (!proxima) return;
+  mudarStatus(p.id, proxima);
+};
+
+/* =========================================================
+   Estoque: mesmo lugar dos ajustes do cardápio
+   ========================================================= */
+async function carregarEstoque() {
+  try {
+    const d = await getDoc(doc(db, "publico", "estoque"));
+    if (d.exists()) window.estoque = d.data().itens || {};
+  } catch (e) { /* sem acesso: o painel abre com o estoque vazio */ }
+  if (window.estDesenhar) window.estDesenhar();
+}
+
+window.salvarEstoque = async function (silencioso) {
+  const st = el("[data-est-status]");
+  if (!silencioso && st) { st.textContent = "Salvando…"; st.dataset.sujo = "false"; }
+  try {
+    await setDoc(doc(db, "publico", "estoque"), {
+      itens: window.estoque || {},
+      mudadoEm: Timestamp.now()
+    });
+    if (!silencioso && st) {
+      st.textContent = "Salvo.";
+      setTimeout(() => { if (st.textContent === "Salvo.") st.textContent = ""; }, 6000);
+    }
+    return true;
+  } catch (e) {
+    if (!silencioso && st) { st.textContent = "Não consegui salvar. Verifique a internet."; st.dataset.sujo = "true"; }
+    return false;
+  }
+};
 
 window.salvarCardapio = async function (silencioso) {
   try {

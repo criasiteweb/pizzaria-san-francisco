@@ -5,10 +5,12 @@
    Mesmo padrão do portal do Mercado Já:
 
    - Quadro: os números do dia em cima e o pedido andando por quatro
-     colunas (Recebido, No forno, Saiu para entrega, Entregue).
+     colunas (Recebido, No forno, Na rua ou pronto, Entregue).
    - Forno: só o que está assando agora, em letra grande, para a tela
      que fica pendurada na cozinha.
-   - Entrega: quem já saiu, para onde vai e quanto o cliente vai pagar.
+
+   Entrega e retirada NÃO têm aba própria: elas já aparecem em "Em aberto"
+   e no Quadro, e uma tela a mais só repetiria a mesma lista.
 
    Tudo lê os MESMOS pedidos que o painel já recebe do servidor. Nada é
    digitado duas vezes e nenhuma tela nova precisa de internet própria.
@@ -18,7 +20,7 @@
 const QD_COLUNAS = [
   { st: "novo",       titulo: "Recebido",          vazio: "Nenhum pedido novo" },
   { st: "preparando", titulo: "No forno",          vazio: "Nada assando" },
-  { st: "saiu",       titulo: "Saiu para entrega", vazio: "Ninguém na rua" },
+  { st: "saiu",       titulo: "Na rua ou pronto",  vazio: "Ninguém na rua" },
   { st: "concluido",  titulo: "Entregue",          vazio: "Nada fechado ainda" }
 ];
 
@@ -61,7 +63,7 @@ function qdNumeros(d) {
     { n: valem.length + comandas.length, r: "Pedidos hoje" },
     { n: qdReais(vendido),               r: "Vendido hoje" },
     { n: comandas.length,                r: "Vendas no balcão" },
-    { n: d.pedidos.filter(p => p.status === "saiu").length, r: "Na rua agora" }
+    { n: d.pedidos.filter(p => p.status === "saiu" && qdEhEntrega(p)).length, r: "Na rua agora" }
   ];
 }
 
@@ -137,7 +139,7 @@ window.qdDesenharForno = function () {
   alvo.innerHTML = `
     <div class="qd-titulo">
       <h2>No forno</h2>
-      <p>Só o que está sendo feito agora. Terminou, toque em Saiu para entrega e o pedido anda sozinho no quadro.</p>
+      <p>Só o que está sendo feito agora. Terminou, toque no botão e o pedido anda sozinho no quadro.</p>
     </div>` + (lista.length ? `
     <div class="fo-lista">${lista.map(p => `
       <article class="fo-item" data-qd-id="${qdEsc(p.id)}">
@@ -151,42 +153,6 @@ window.qdDesenharForno = function () {
         <button type="button" class="fo-pronto" data-qd-avancar="${qdEsc(p.id)}">${qdAcao("preparando", p)}</button>
       </article>`).join("")}</div>`
     : `<p class="qd-vazio-grande"><b>Nada no forno</b>Quando você aceitar um pedido ele aparece aqui.</p>`);
-};
-
-/* =========================================================
-   Entrega — quem está na rua
-   ========================================================= */
-window.qdDesenharEntrega = function () {
-  const alvo = document.querySelector("[data-entrega]");
-  if (!alvo) return;
-  const lista = qdFonte().pedidos.filter(p => p.status === "saiu");
-  const naRua = lista.reduce((t, p) => t + (Number(p.total) || 0), 0);
-
-  alvo.innerHTML = `
-    <div class="qd-titulo">
-      <h2>Entregas na rua</h2>
-      <p>Quem saiu, para onde vai e quanto o cliente ainda vai pagar na porta.</p>
-    </div>
-    <div class="qd-numeros">
-      <div class="qd-numero"><b>${lista.length}</b><span>Na rua agora</span></div>
-      <div class="qd-numero"><b>${qdReais(naRua)}</b><span>A receber na porta</span></div>
-    </div>` + (lista.length ? `
-    <div class="en-lista">${lista.map(p => `
-      <article class="en-item" data-qd-id="${qdEsc(p.id)}">
-        <div class="en-cabeca">
-          <span class="en-num">#${qdEsc(p.numero)}</span>
-          <strong>${qdEsc(p.cliente) || "Sem nome"}</strong>
-          <span class="en-hora">${qdEsc(qdTempo(p))}</span>
-        </div>
-        <p class="en-endereco">${qdEsc(p.endereco) || "Sem endereço no pedido"}</p>
-        ${p.fone ? `<p class="en-fone">${qdEsc(p.fone)}</p>` : ""}
-        <p class="en-pagto">${qdEsc(p.pagamento) || "Pagamento não informado"}</p>
-        <div class="en-rodape">
-          <span class="en-total">${qdReais(p.total || 0)}</span>
-          <button type="button" data-qd-avancar="${qdEsc(p.id)}">${qdAcao("saiu", p)}</button>
-        </div>
-      </article>`).join("")}</div>`
-    : `<p class="qd-vazio-grande"><b>Ninguém na rua</b>Os pedidos que saírem aparecem aqui.</p>`);
 };
 
 /* =========================================================

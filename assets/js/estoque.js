@@ -2,11 +2,14 @@
    Pizzaria San Francisco — Estoque (aba "Estoque" do painel)
    Criasiteweb
 
-   Mesmo padrão do portal do Mercado Já: cada item do cardápio pode ter
-   quantidade, aviso de fim e código de barras. Quem não receber
-   quantidade fica SEM controle — é o caso das pizzas, que são montadas
-   na hora. Quem tem quantidade (bebida, cerveja, água) baixa sozinho a
-   cada comanda fechada no balcão.
+   Mesmo padrão do portal do Mercado Já, mas aqui só entra PRODUTO
+   LACRADO: bebida, refrigerante, suco, água e cerveja. É o que a loja
+   compra pronto e revende, e o único tipo de item que dá para contar.
+   Pizza e caldo saem da cozinha, são feitos na hora e vivem só no
+   cardápio — nunca aparecem nesta tela.
+
+   Cada produto lacrado tem quantidade, aviso de fim e código de barras,
+   e baixa sozinho a cada comanda fechada no balcão.
 
    O estoque fica guardado no servidor (publico/estoque), igual aos
    ajustes do cardápio. Quando um item zera, ele também é marcado como
@@ -14,6 +17,19 @@
    ========================================================= */
 
 window.estoque = window.estoque || {};   // { id: {q, min, cod} }
+
+/* Só produto lacrado entra no estoque. Pizza e caldo saem da cozinha,
+   são feitos na hora e não têm o que contar. A lista de grupos que contam
+   fica em cardapio.js (GRUPOS_ESTOQUE), junto com o resto do cardápio. */
+function estGruposControlados() {
+  return typeof GRUPOS_ESTOQUE !== "undefined" ? GRUPOS_ESTOQUE : ["bebidas"];
+}
+
+function estCatalogo() {
+  const base = typeof CARDAPIO !== "undefined" ? CARDAPIO : [];
+  const grupos = estGruposControlados();
+  return base.filter(i => grupos.indexOf(i.g) >= 0);
+}
 
 let estGrupo = "todos";
 let estBusca = "";
@@ -48,8 +64,7 @@ function estEsgotado(id) {
 
 /* lista do aviso de topo: o que precisa comprar */
 window.estEmFalta = function () {
-  const base = typeof CARDAPIO !== "undefined" ? CARDAPIO : [];
-  return base.filter(i => estNoFim(i.id));
+  return estCatalogo().filter(i => estNoFim(i.id));
 };
 
 function estMarcarSujo(sujo) {
@@ -105,7 +120,12 @@ function estMarcarEsgotadoNoCardapio(id, acabou) {
 function estDesenharGrupos() {
   const alvo = document.querySelector("[data-est-grupos]");
   if (!alvo) return;
-  const grupos = typeof GRUPOS !== "undefined" ? GRUPOS : [];
+  const todos = typeof GRUPOS !== "undefined" ? GRUPOS : [];
+  const controlados = estGruposControlados();
+  const grupos = todos.filter(g => controlados.indexOf(g.id) >= 0);
+  /* com um grupo só a barra não serve pra nada: some e a tela fica limpa */
+  if (grupos.length < 2) { alvo.innerHTML = ""; alvo.hidden = true; return; }
+  alvo.hidden = false;
   alvo.innerHTML =
     `<button type="button" data-est-grupo="todos" aria-pressed="${estGrupo === "todos"}">Tudo</button>` +
     grupos.map(g =>
@@ -130,7 +150,7 @@ function estPreco(i) {
 }
 
 function estFiltrar() {
-  const base = typeof CARDAPIO !== "undefined" ? CARDAPIO : [];
+  const base = estCatalogo();
   const busca = estBusca.trim().toLowerCase();
   return base.filter(i => {
     if (estGrupo !== "todos" && i.g !== estGrupo) return false;
@@ -268,7 +288,7 @@ document.addEventListener("keydown", ev => {
   const codigo = ev.target.value.trim();
   const achado = Object.keys(window.estoque).find(id => (window.estoque[id].cod || "") === codigo);
   if (!achado) return;
-  const item = (typeof CARDAPIO !== "undefined" ? CARDAPIO : []).find(i => i.id === achado);
+  const item = estCatalogo().find(i => i.id === achado);
   if (!item) return;
   ev.target.value = item.n;
   estBusca = item.n;

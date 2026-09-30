@@ -64,7 +64,6 @@
       <button type="button" data-filtro="quadro" aria-pressed="false">Quadro</button>
       <button type="button" data-filtro="abertos" aria-pressed="true">Em aberto</button>
       <button type="button" data-filtro="forno" aria-pressed="false">Forno</button>
-      <button type="button" data-filtro="entrega" aria-pressed="false">Entrega</button>
       <button type="button" data-filtro="balcao" aria-pressed="false">Balcão</button>
       <button type="button" data-filtro="estoque" aria-pressed="false">Estoque</button>
       <button type="button" data-filtro="todos" aria-pressed="false">Todos de hoje</button>
@@ -99,17 +98,15 @@
   <!-- ============ forno: a tela da cozinha ============ -->
   <section class="forno" data-forno hidden></section>
 
-  <!-- ============ entrega: quem está na rua ============ -->
-  <section class="entrega" data-entrega hidden></section>
-
   <!-- ============ estoque ============ -->
   <section class="estoque" data-estoque hidden>
     <div class="est-topo">
       <div>
         <h2>Estoque</h2>
-        <p class="est-ajuda">Quantidade, aviso de fim e código de barras. Quem não tiver quantidade
-           fica sem controle, que é o caso das pizzas. Bebida e cerveja baixam sozinhas a cada
-           comanda fechada no balcão, e o que zera some do site na hora.</p>
+        <p class="est-ajuda">Só produto lacrado: bebida, refrigerante, suco, água e cerveja.
+           Pizza e caldo são feitos na hora, então ficam só no cardápio e não entram aqui.
+           Ponha a quantidade e o aviso de fim, que o estoque baixa sozinho a cada comanda
+           fechada no balcão. O que zera some do site na hora.</p>
       </div>
       <div class="est-acoes">
         <span class="est-status" data-est-status></span>
@@ -123,7 +120,7 @@
       <input type="search" data-est-busca placeholder="Procurar item ou bipar o código…" />
       <select data-est-so>
         <option value="">Tudo</option>
-        <option value="controlado">Só o que tem controle</option>
+        <option value="controlado">Só o que já tem quantidade</option>
         <option value="falta">No fim ou acabou</option>
       </select>
     </div>

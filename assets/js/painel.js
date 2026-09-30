@@ -37,6 +37,27 @@ const ETAPAS = {
   recusado:   { rotulo: "Recusado",    proxima: null,         acao: null, reabre: true,      avisar: "Avisar que não dá" }
 };
 
+/* Pedido de retirada nunca "sai para entrega": ele fica pronto e o cliente
+   vem buscar. Os textos dos botões seguem isso, senão o atendente avisa a
+   coisa errada. A mensagem que vai pro WhatsApp já era certa (RECADOS). */
+function ehEntrega(p) { return /entrega/i.test((p && p.tipo) || ""); }
+
+function etapaDe(p) {
+  const base = ETAPAS[p.status] || ETAPAS.novo;
+  if (ehEntrega(p)) return base;
+  if (p.status === "preparando") {
+    return Object.assign({}, base, { acao: "Pronto para retirar" });
+  }
+  if (p.status === "saiu") {
+    return Object.assign({}, base, {
+      rotulo: "Pronto",
+      acao: "Retirado",
+      avisar: "Avisar que está pronto para retirar"
+    });
+  }
+  return base;
+}
+
 let pedidos = [];          // os do dia que está na tela, mais novos primeiro
 let primeiraCarga = true;  // não apita ao abrir a tela
 let filtro = "abertos";    // abertos | todos | historico
@@ -355,8 +376,8 @@ function resumoItens(p) {
 
 function cartao(p) {
   if (p.balcao) return cartaoBalcao(p);
-  const etapa = ETAPAS[p.status] || ETAPAS.novo;
-  const entrega = /entrega/i.test(p.tipo || "");
+  const etapa = etapaDe(p);
+  const entrega = ehEntrega(p);
   const noLocal = /restaurante|mesa/i.test(p.tipo || "");
   return `
   <article class="pedido" data-status="${esc(p.status)}" data-id="${esc(p.id)}">
@@ -432,16 +453,14 @@ function desenhar() {
   const noEditor = filtro === "cardapio";
   const noQuadro  = filtro === "quadro";
   const noForno   = filtro === "forno";
-  const noEntrega = filtro === "entrega";
   const noEstoque = filtro === "estoque";
-  const telaPropria = noCaixa || noBalcao || noEditor || noQuadro || noForno || noEntrega || noEstoque;
+  const telaPropria = noCaixa || noBalcao || noEditor || noQuadro || noForno || noEstoque;
 
   el("[data-caixa]").hidden  = !noCaixa;
   el("[data-balcao]").hidden = !noBalcao;
   el("[data-editor]").hidden = !noEditor;
   el("[data-quadro]").hidden  = !noQuadro;
   el("[data-forno]").hidden   = !noForno;
-  el("[data-entrega]").hidden = !noEntrega;
   el("[data-estoque]").hidden = !noEstoque;
   document.body.classList.toggle("ver-papel", noBalcao);
   lista.hidden = telaPropria;
@@ -449,13 +468,12 @@ function desenhar() {
 
   /* Quadro, Forno, Entrega e Estoque são as telas no padrão do portal:
      todas leem os mesmos pedidos, então é só mandar redesenhar. */
-  if (noQuadro || noForno || noEntrega || noEstoque) {
+  if (noQuadro || noForno || noEstoque) {
     els("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === filtro)));
     el("[data-caixa-data]").hidden = true;
     el("[data-contador]").textContent = pedidos.filter(p => p.status === "novo").length || "";
     if (noQuadro  && window.qdDesenharQuadro)  window.qdDesenharQuadro();
     if (noForno   && window.qdDesenharForno)   window.qdDesenharForno();
-    if (noEntrega && window.qdDesenharEntrega) window.qdDesenharEntrega();
     if (noEstoque && window.estDesenhar)       window.estDesenhar();
     return;
   }
@@ -914,7 +932,10 @@ async function mudarStatus(id, status) {
       if (p && p.fone) {
         p.status = "saiu";
         setTimeout(() => {
-          if (confirm("Avisar o cliente pelo WhatsApp que o pedido saiu para entrega?")) avisarCliente(p);
+          const pergunta = ehEntrega(p)
+            ? "Avisar o cliente pelo WhatsApp que o pedido saiu para entrega?"
+            : "Avisar o cliente pelo WhatsApp que o pedido está pronto para retirar?";
+          if (confirm(pergunta)) avisarCliente(p);
         }, 150);
       }
     }
@@ -995,7 +1016,7 @@ function imprimir(p) {
 /* ========================= controles de cima ========================= */
 els("[data-filtro]").forEach(b => b.addEventListener("click", () => {
   filtro = b.dataset.filtro;
-  if (["balcao", "cardapio", "quadro", "forno", "entrega", "estoque"].includes(filtro)) {
+  if (["balcao", "cardapio", "quadro", "forno", "estoque"].includes(filtro)) {
     /* essas telas são sempre do dia de hoje, ao vivo */
     if (dataHistorico) { dataHistorico = null; escutarPedidos(); }
     desenhar();

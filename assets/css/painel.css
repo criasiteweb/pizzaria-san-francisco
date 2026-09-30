@@ -428,11 +428,11 @@
   font:700 12px/1.2 "Inter",sans-serif;background:#FF8D82;color:#2a0d0a;border:0}
 
 /* =========================================================
-   Quadro, Forno, Entrega e Estoque
+   Quadro, Forno e Estoque
    Mesmo desenho do portal do Mercado Já, nas cores da pizzaria.
    ========================================================= */
 
-.quadro, .forno, .entrega, .estoque{padding:18px 16px 40px;max-width:1500px;margin:0 auto}
+.quadro, .forno, .estoque{padding:18px 16px 40px;max-width:1500px;margin:0 auto}
 
 .qd-titulo h2{margin:0;font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:24px;letter-spacing:.03em}
 .qd-titulo p{margin:6px 0 18px;color:var(--texto-suave);font-size:14.5px;max-width:70ch;line-height:1.55}
@@ -498,24 +498,6 @@
 .fo-pronto{
   width:100%;margin-top:16px;padding:14px;border-radius:12px;border:none;cursor:pointer;
   background:var(--verde);color:#fff;font:800 16px/1.2 "Inter",sans-serif;
-}
-
-/* ---------- entrega ---------- */
-.en-lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.en-item{background:var(--carvao);border:1px solid var(--linha);border-left:5px solid var(--verde);
-  border-radius:var(--raio-g);padding:16px}
-.en-cabeca{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.en-num{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:20px;color:var(--amarelo)}
-.en-cabeca strong{font-size:15.5px;margin-right:auto}
-.en-hora{font-size:12.5px;color:var(--texto-suave)}
-.en-endereco{margin:10px 0 0;font-size:15px;line-height:1.5}
-.en-fone{margin:4px 0 0;font-size:14px;color:var(--texto-suave)}
-.en-pagto{margin:8px 0 0;font-size:14px;color:var(--texto-suave)}
-.en-rodape{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
-.en-total{font-weight:800;font-size:17px}
-.en-rodape button{
-  flex:0 0 auto;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;
-  background:var(--verde);color:#fff;font:700 13.5px/1.2 "Inter",sans-serif;
 }
 
 /* ---------- estoque ---------- */
@@ -586,7 +568,26 @@
   .est-marcar{grid-area:marcar}
 }
 @media (max-width:760px){
-  .quadro, .forno, .entrega, .estoque{padding:14px 12px 32px}
+  .quadro, .forno, .estoque{padding:14px 12px 32px}
+  .est-topo{flex-direction:column}
+  .fo-itens{font-size:16px}
+}
+
+/* a fila de abas é longa: numa tela pequena ela quebra em duas linhas
+   em vez de esconder o fim atrás de uma rolagem lateral */
+.filtros{flex-wrap:wrap}
+
+/* ---------- telas menores: nada de rolar de lado ---------- */
+@media (max-width:1000px){
+  .est-linha{grid-template-columns:1fr 1fr;grid-template-areas:"nome nome" "q min" "cod cod" "marcar marcar"}
+  .est-nome{grid-area:nome}
+  .est-linha .est-campo:nth-of-type(1){grid-area:q}
+  .est-linha .est-campo:nth-of-type(2){grid-area:min}
+  .est-campo-cod{grid-area:cod}
+  .est-marcar{grid-area:marcar}
+}
+@media (max-width:760px){
+  .quadro, .forno, .estoque{padding:14px 12px 32px}
   .est-topo{flex-direction:column}
   .fo-itens{font-size:16px}
 }

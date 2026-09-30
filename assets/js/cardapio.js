@@ -205,6 +205,14 @@ const CARDAPIO = [
   { id:"b18", g:"bebidas", n:"Cerveja Original 600 ml",       d:"Garrafa gelada.",                p:16.00, f:"sem-foto" },
 ];
 
+/* ---- o que entra no controle de estoque ----
+   Só produto LACRADO, que a loja compra pronto e revende: bebida,
+   refrigerante, suco, cerveja e água. Tudo que sai da cozinha (pizza,
+   caldo) é feito na hora e vive só no cardápio, nunca no estoque.
+   Para incluir um grupo novo de produto lacrado, basta pôr o id dele
+   nesta lista. */
+const GRUPOS_ESTOQUE = ["bebidas"];
+
 /* ---- cupons ---- (nenhum no modelo) */
 const CUPONS = [];
 

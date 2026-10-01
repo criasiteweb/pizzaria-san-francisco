@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>QR Code para imprimir | Pizzaria San Francisco</title>
+<link rel="icon" href="assets/img/favicon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#FBF6EE;color:#2A1A12;font-family:"Inter",system-ui,sans-serif;padding:28px 18px 60px}
+  .folha{max-width:540px;margin:0 auto;background:#fff;border:1px solid rgba(70,35,15,.14);
+    border-radius:26px;padding:0 0 30px;text-align:center;overflow:hidden;
+    box-shadow:0 16px 38px rgba(90,45,20,.14)}
+  .folha .faixa{background:linear-gradient(135deg,#D42A20,#E8493C);padding:26px 22px 44px;position:relative}
+  .folha .faixa h1{font-family:"Playfair Display",Georgia,serif;font-weight:900;font-size:36px;color:#fff;
+    margin:0;text-transform:uppercase;line-height:1.08}
+  .folha .faixa small{display:block;font-size:12.5px;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:8px}
+  .folha .logo{width:88px;height:88px;border-radius:50%;border:4px solid #fff;background:#fff;
+    position:absolute;left:50%;bottom:-44px;transform:translateX(-50%);box-shadow:0 8px 20px rgba(90,45,20,.26)}
+  .folha .corpo{padding:58px 26px 0}
+  .sub{margin:0 0 20px;font-size:17px;font-weight:700;color:rgba(42,26,18,.75)}
+  .qr{background:#fff;border-radius:18px;padding:10px;display:inline-block;border:1px solid rgba(70,35,15,.12)}
+  .qr svg{display:block;width:260px;height:260px}
+  .passos{margin:22px 0 0;font-size:17px;line-height:1.6;font-weight:700}
+  .end{margin:18px 0 0;font-size:14.5px;line-height:1.6;color:rgba(42,26,18,.65)}
+  .fora{max-width:540px;margin:24px auto 0;text-align:center;color:rgba(42,26,18,.7);font-size:15px;line-height:1.6}
+  .fora button{margin-top:12px;padding:14px 24px;border-radius:999px;border:0;cursor:pointer;
+    background:#D42A20;color:#fff;font:800 16px/1 "Inter",sans-serif}
+  @media print{
+    body{background:#fff;padding:0}
+    .fora{display:none}
+    .folha{max-width:100%;border:0;border-radius:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="folha">
+  <div class="faixa">
+    <small>Pizzaria San Francisco</small>
+    <h1>Peça pelo celular</h1>
+    <img class="logo" src="assets/img/logo.png" alt="Pizzaria San Francisco" />
+  </div>
+  <div class="corpo">
+    <p class="sub">Aponte a câmera para o código</p>
+    <div class="qr" data-qr></div>
+    <p class="passos">
+      Cardápio completo com fotos<br />
+      Monta o pedido e manda no WhatsApp
+    </p>
+    <p class="end">
+      Rua Eugênio Roncon, 175 · Roncon · Ribeirão Pires — SP<br />
+      Disk pizza (11) 4824-4436 · WhatsApp (11) 97100-3058
+    </p>
+  </div>
+</div>
+
+<div class="fora">
+  <p>Imprima e cole no balcão, na vitrine ou na embalagem.<br />Funciona em papel A4 comum.</p>
+  <button type="button" onclick="window.print()">Imprimir este cartaz</button>
+</div>
+
+<script src="assets/js/qrcode-lib.js"></script>
+<script>
+(function () {
+  var link = location.href.replace(/[^/]*$/, "") + "index.html";
+  var qr = qrcode(0, "H");
+  qr.addData(link);
+  qr.make();
+  document.querySelector("[data-qr]").innerHTML = qr.createSvgTag(4);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>QR Code das mesas para imprimir | Pizzaria San Francisco</title>
+<link rel="icon" href="assets/img/favicon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#FBF6EE;color:#2A1A12;font-family:"Inter",system-ui,sans-serif;padding:30px 18px 64px}
+  .topo{max-width:1000px;margin:0 auto 22px;text-align:center}
+  .topo h1{font-family:"Playfair Display",Georgia,serif;font-weight:900;font-size:30px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.01em}
+  .topo p{margin:0 auto;max-width:640px;font-size:16px;line-height:1.6;color:rgba(42,26,18,.7)}
+  .controle{max-width:1000px;margin:18px auto 26px;display:flex;flex-wrap:wrap;gap:12px;
+    align-items:center;justify-content:center;background:#fff;border:1px solid rgba(70,35,15,.12);
+    border-radius:18px;padding:16px 18px;box-shadow:0 10px 26px rgba(90,45,20,.1)}
+  .controle label{font-size:16px;font-weight:700}
+  .controle input{width:92px;padding:11px 12px;font:700 18px/1 "Inter",sans-serif;
+    border:2px solid rgba(70,35,15,.2);border-radius:12px;color:#2A1A12;background:#FBF6EE}
+  .controle button{padding:12px 20px;border-radius:999px;border:0;cursor:pointer;
+    background:#D42A20;color:#fff;font:800 16px/1 "Inter",sans-serif}
+  .grade{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+  .cartao{position:relative;background:#fff;border:1px solid rgba(70,35,15,.14);border-radius:24px;
+    padding:0 0 20px;text-align:center;overflow:hidden;break-inside:avoid;page-break-inside:avoid;
+    box-shadow:0 14px 34px rgba(90,45,20,.14)}
+  .cartao .faixa{background:linear-gradient(135deg,#D42A20,#E8493C);padding:18px 16px 34px;position:relative}
+  .cartao .faixa .mesa{font-family:"Playfair Display",Georgia,serif;font-weight:900;font-size:34px;
+    color:#fff;text-transform:uppercase;line-height:1;display:block}
+  .cartao .faixa .mesa small{display:block;font-family:"Inter",sans-serif;font-size:12px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:5px}
+  .cartao .logo{width:58px;height:58px;border-radius:50%;border:3px solid #fff;background:#fff;
+    position:absolute;left:50%;bottom:-29px;transform:translateX(-50%);box-shadow:0 6px 16px rgba(90,45,20,.26)}
+  .cartao .corpo{padding:40px 18px 0}
+  .cartao .sub{margin:0 0 14px;font-size:14px;font-weight:700;color:rgba(42,26,18,.7);line-height:1.45}
+  .qr{background:#fff;border-radius:14px;padding:8px;display:inline-block}
+  .qr svg{display:block;width:160px;height:160px}
+  .cartao .rodape{margin:14px 0 0;font-size:12.5px;font-weight:700;color:rgba(42,26,18,.6);line-height:1.45}
+  .fora{max-width:1000px;margin:26px auto 0;text-align:center;color:rgba(42,26,18,.7);font-size:15px;line-height:1.6}
+  @media print{
+    body{background:#fff;padding:0}
+    .fora,.topo,.controle{display:none}
+    .grade{gap:12px;padding:12px}
+    .cartao{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <h1>QR Code das mesas</h1>
+  <p>Cada mesa tem o seu próprio código. O cliente aponta a câmera e o cardápio já abre com o número
+     daquela mesa, sem digitar nada.</p>
+</div>
+
+<div class="controle">
+  <label for="quantas">Quantas mesas o salão tem?</label>
+  <input id="quantas" type="number" min="1" max="60" value="12" />
+  <button type="button" data-gerar>Gerar cartões</button>
+  <button type="button" onclick="window.print()">Imprimir</button>
+</div>
+
+<div class="grade" data-grade></div>
+
+<div class="fora">
+  <p>Imprima, recorte e cole um cartão em cada mesa. Papel A4 comum dá conta.</p>
+</div>
+
+<script src="assets/js/qrcode-lib.js"></script>
+<script>
+(function () {
+  var base = location.href.replace(/[^/]*$/, "") + "restaurante.html?mesa=";
+  var grade = document.querySelector("[data-grade]");
+  var campo = document.getElementById("quantas");
+
+  function montar() {
+    var total = Math.max(1, Math.min(60, Number(campo.value) || 12));
+    var html = "";
+    for (var n = 1; n <= total; n++) {
+      html += '<div class="cartao">' +
+        '<div class="faixa"><span class="mesa"><small>San Francisco</small>Mesa ' + n + '</span>' +
+          '<img class="logo" src="assets/img/logo.png" alt="Pizzaria San Francisco" /></div>' +
+        '<div class="corpo">' +
+          '<p class="sub">Aponte a câmera do celular<br />e peça pelo cardápio</p>' +
+          '<div class="qr" data-qr="' + n + '"></div>' +
+          '<p class="rodape">Peça quantas vezes quiser<br />A conta fecha no final</p>' +
+        '</div>' +
+        '</div>';
+    }
+    grade.innerHTML = html;
+    for (var m = 1; m <= total; m++) {
+      /* correção de erro alta: o cartão aguenta gordura e amassado na mesa */
+      var qr = qrcode(0, "H");
+      qr.addData(base + m);
+      qr.make();
+      document.querySelector('[data-qr="' + m + '"]').innerHTML = qr.createSvgTag(4);
+    }
+  }
+
+  document.querySelector("[data-gerar]").addEventListener("click", montar);
+  campo.addEventListener("change", montar);
+  montar();
+})();
+</script>
+
+</body>
+</html>

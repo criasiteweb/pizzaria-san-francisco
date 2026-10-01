@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>QR Code do site e do balcão para imprimir | Pizzaria San Francisco</title>
+<link rel="icon" href="assets/img/favicon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#FBF6EE;color:#2A1A12;font-family:"Inter",system-ui,sans-serif;padding:30px 18px 64px}
+  .topo{max-width:700px;margin:0 auto 24px;text-align:center}
+  .topo h1{font-family:"Playfair Display",Georgia,serif;font-weight:900;font-size:28px;margin:0 0 8px;text-transform:uppercase}
+  .topo p{margin:0;font-size:16px;line-height:1.6;color:rgba(42,26,18,.7)}
+  .grade{max-width:700px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+  .cartao{position:relative;background:#fff;border:1px solid rgba(70,35,15,.14);border-radius:24px;
+    padding:0 0 22px;text-align:center;overflow:hidden;break-inside:avoid;page-break-inside:avoid;
+    box-shadow:0 14px 34px rgba(90,45,20,.14)}
+  .cartao .faixa{background:linear-gradient(135deg,#D42A20,#E8493C);padding:20px 16px 36px;position:relative}
+  .cartao .faixa h2{font-family:"Playfair Display",Georgia,serif;font-weight:900;font-size:25px;color:#fff;
+    margin:0;text-transform:uppercase;line-height:1.15}
+  .cartao .faixa small{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:6px}
+  .cartao .logo{width:62px;height:62px;border-radius:50%;border:3px solid #fff;background:#fff;
+    position:absolute;left:50%;bottom:-31px;transform:translateX(-50%);box-shadow:0 6px 16px rgba(90,45,20,.26)}
+  .cartao .corpo{padding:42px 18px 0}
+  .cartao .sub{margin:0 0 16px;font-size:14px;font-weight:700;color:rgba(42,26,18,.7);line-height:1.45}
+  .qr{background:#fff;border-radius:14px;padding:8px;display:inline-block;border:1px solid rgba(70,35,15,.12)}
+  .qr svg{display:block;width:190px;height:190px}
+  .cartao .rodape{margin:14px 0 0;font-size:13px;font-weight:700;color:rgba(42,26,18,.6)}
+  .fora{max-width:700px;margin:26px auto 0;text-align:center;color:rgba(42,26,18,.7);font-size:15px;line-height:1.6}
+  .fora button{margin-top:12px;padding:14px 24px;border-radius:999px;border:0;cursor:pointer;
+    background:#D42A20;color:#fff;font:800 16px/1 "Inter",sans-serif}
+  @media print{
+    body{background:#fff;padding:0}
+    .fora,.topo{display:none}
+    .grade{gap:12px;padding:12px}
+    .cartao{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <h1>QR Code do site e do balcão</h1>
+  <p>Um para divulgar o site de pedidos, outro para deixar no balcão da loja.</p>
+</div>
+
+<div class="grade">
+  <div class="cartao">
+    <div class="faixa"><small>San Francisco</small><h2>Peça pelo site</h2>
+      <img class="logo" src="assets/img/logo.png" alt="Pizzaria San Francisco" /></div>
+    <div class="corpo">
+      <p class="sub">Cardápio completo · entrega e retirada</p>
+      <div class="qr" data-qr="site"></div>
+      <p class="rodape">Pizzaria San Francisco</p>
+    </div>
+  </div>
+  <div class="cartao">
+    <div class="faixa"><small>San Francisco</small><h2>Peça no balcão</h2>
+      <img class="logo" src="assets/img/logo.png" alt="Pizzaria San Francisco" /></div>
+    <div class="corpo">
+      <p class="sub">Já abre em "Retirada no balcão"</p>
+      <div class="qr" data-qr="balcao"></div>
+      <p class="rodape">Pizzaria San Francisco</p>
+    </div>
+  </div>
+</div>
+
+<div class="fora">
+  <p>Funciona em papel A4 comum, para colar no balcão ou usar num cartaz.</p>
+  <button type="button" onclick="window.print()">Imprimir</button>
+</div>
+
+<script src="assets/js/qrcode-lib.js"></script>
+<script>
+(function () {
+  var base = location.href.replace(/[^/]*$/, "") + "index.html";
+  var alvos = { site: base, balcao: base + "?modo=balcao" };
+  Object.keys(alvos).forEach(function (chave) {
+    var qr = qrcode(0, "H");
+    qr.addData(alvos[chave]);
+    qr.make();
+    document.querySelector('[data-qr="' + chave + '"]').innerHTML = qr.createSvgTag(4);
+  });
+})();
+</script>
+
+</body>
+</html>

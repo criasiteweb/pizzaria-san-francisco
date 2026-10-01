@@ -1769,6 +1769,44 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   form.pagamento.addEventListener("change", () => { troco.hidden = form.pagamento.value !== "Dinheiro"; });
 
+  /* QR Code da mesa (restaurante.html?mesa=7): abre já em "No restaurante",
+     sem escolha de entrega, sem endereço e sem pagamento. O número vem do
+     link, então a pessoa não digita nada. */
+  if (MESA_ATUAL) {
+    const n = Number(MESA_ATUAL);
+    const local = $("[data-opcao-local]");
+    if (local) local.hidden = false;
+    const r = document.querySelector('input[name="tipo"][value="No restaurante"]');
+    if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }
+    /* as outras formas de receber saem da tela: aqui só existe a mesa */
+    $$('input[name="tipo"]', form).forEach(c => {
+      if (c.value !== "No restaurante") c.closest(".radio").hidden = true;
+    });
+    const legenda = document.querySelector("[data-checkout] .opcoes legend");
+    if (legenda) legenda.textContent = "Seu pedido vai para a cozinha";
+    /* pagamento e troco não aparecem: a conta fecha no final, com o garçom */
+    const pag = form.pagamento.closest("label");
+    if (pag) pag.hidden = true;
+    const trocoMesa = $("[data-campo-troco]");
+    if (trocoMesa) trocoMesa.hidden = true;
+    const avisoTaxa = document.querySelector(".aviso-taxa");
+    if (avisoTaxa) avisoTaxa.hidden = true;
+    const caixaMesa = $("[data-caixa-mesa]");
+    if (caixaMesa) caixaMesa.innerHTML =
+      "<b>Mesa " + n + "</b><span>Pode pedir quantas vezes quiser. Tudo entra na comanda desta mesa " +
+      "e a conta fecha no final, com o garçom.</span>";
+    /* o número da mesa aparece no topo e na faixa, pra pessoa conferir */
+    const rot = document.querySelector("[data-mesa-rot]");
+    if (rot) rot.textContent = "Mesa " + n + " · salão";
+    const chamada = document.querySelector("[data-mesa-chamada]");
+    if (chamada) chamada.textContent = "Você está na mesa " + n;
+    const num = document.querySelector("[data-mesa-numero]");
+    if (num) num.textContent = "Mesa " + n;
+    const tituloCar = document.querySelector("[data-mesa-carrinho]");
+    if (tituloCar) tituloCar.textContent = "Mesa " + n;
+    document.title = "Mesa " + n + " | Pizzaria San Francisco";
+  }
+
   /* QR Code do balcão (?modo=balcao): já abre com "Retirada no balcão"
      marcado, pra quem está pedindo no local sem precisar escolher */
   if (new URLSearchParams(location.search).get("modo") === "balcao") {
